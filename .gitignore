@@ -98,10 +98,10 @@ venv.bak/
 # mypy
 .mypy_cache/
 
-# Database files
-*.db
-*.sqlite
-*.sqlite3
+# Database files - تم تعطيل استبعاد قواعد البيانات للسماح برفعها
+# *.db
+# *.sqlite
+# *.sqlite3
 
 # VS Code
 .vscode/
