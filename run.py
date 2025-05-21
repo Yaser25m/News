@@ -38,8 +38,12 @@ if __name__ == '__main__':
     # تم إزالة استيراد المجدول
 
     # تحديد إعدادات التشغيل حسب البيئة
+    # إذا كان التطبيق يعمل على منصة Cloudflare Pages
+    if 'CF_PAGES' in os.environ:
+        # تشغيل التطبيق على منصة Cloudflare Pages
+        app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
     # إذا كان التطبيق يعمل على منصة Replit
-    if 'REPLIT_DB_URL' in os.environ:
+    elif 'REPLIT_DB_URL' in os.environ:
         # تشغيل التطبيق على منصة Replit
         app.run(debug=False, host='0.0.0.0', port=8080)
     else:

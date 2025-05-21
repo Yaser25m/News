@@ -13,6 +13,11 @@
 - طباعة تقارير الأخبار وتصديرها إلى PDF
 - واجهة مستخدم عربية سهلة الاستخدام
 
+## الاستضافة على Cloudflare Pages
+
+تم استضافة هذا المشروع على Cloudflare Pages على الرابط:
+[yaser25m.pages.dev](https://yaser25m.pages.dev)
+
 ## المتطلبات
 
 - Python 3.8+
@@ -26,8 +31,8 @@
 
 1. قم بتنزيل أو استنساخ المشروع:
 ```
-git clone https://github.com/Yaser25m/News.git
-cd News
+git clone https://github.com/Yaser25m/news.git
+cd news
 ```
 
 2. قم بإنشاء بيئة افتراضية وتفعيلها:

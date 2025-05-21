@@ -1,0 +1,18 @@
+{
+  "build": {
+    "command": "bash build.sh",
+    "output_directory": "dist",
+    "root_directory": "."
+  },
+  "routes": [
+    {
+      "pattern": "/*",
+      "script": "workers-site/index.js"
+    }
+  ],
+  "environment_variables": {
+    "FLASK_ENV": "production",
+    "FLASK_APP": "app.py",
+    "DATABASE_URL": "sqlite:///relational_app.db"
+  }
+}

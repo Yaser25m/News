@@ -1,0 +1,16 @@
+{
+  "name": "news-app",
+  "version": "1.0.0",
+  "description": "نظام الرصد الإعلامي",
+  "main": "index.js",
+  "scripts": {
+    "build": "bash build.sh",
+    "start": "python run.py"
+  },
+  "dependencies": {
+    "@cloudflare/kv-asset-handler": "^0.3.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
