@@ -10,6 +10,17 @@ import os
 import sys
 import importlib.util
 
+# التأكد من تثبيت المكتبات المطلوبة
+try:
+    import dateutil
+    import pytz
+    print("تم التحقق من وجود المكتبات المطلوبة")
+except ImportError as e:
+    print(f"خطأ: {e}")
+    print("جاري تثبيت المكتبات المطلوبة...")
+    os.system("pip install python-dateutil pytz")
+    print("تم تثبيت المكتبات المطلوبة")
+
 # طباعة رسالة ترحيبية
 print("=" * 50)
 print("بدء تشغيل نظام مراقبة الإعلام")
@@ -26,5 +37,11 @@ if __name__ == '__main__':
 
     # تم إزالة استيراد المجدول
 
-    # تشغيل التطبيق
-    app.run(debug=True, host='127.0.0.1', port=5000)
+    # تحديد إعدادات التشغيل حسب البيئة
+    # إذا كان التطبيق يعمل على منصة Replit
+    if 'REPLIT_DB_URL' in os.environ:
+        # تشغيل التطبيق على منصة Replit
+        app.run(debug=False, host='0.0.0.0', port=8080)
+    else:
+        # تشغيل التطبيق محلياً
+        app.run(debug=True, host='127.0.0.1', port=5000)
