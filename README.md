@@ -26,8 +26,8 @@
 
 1. قم بتنزيل أو استنساخ المشروع:
 ```
-git clone https://github.com/Yaser25m/news.git
-cd news
+git clone https://github.com/Yaser25m/News.git
+cd News
 ```
 
 2. قم بإنشاء بيئة افتراضية وتفعيلها:
