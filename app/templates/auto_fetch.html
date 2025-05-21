@@ -1,0 +1,370 @@
+{% extends "layout.html" %}
+
+{% block styles %}
+<style>
+    /* تصميم مشابه لموقع هذا اليوم */
+    .news-header {
+        background-color: #0056b3;
+        color: white;
+        padding: 10px 0;
+        margin-bottom: 20px;
+    }
+
+    .news-title {
+        color: #dc3545;
+        font-weight: bold;
+    }
+
+    .news-source {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+
+    .news-date {
+        color: #6c757d;
+        font-size: 0.8rem;
+    }
+
+    .news-card {
+        margin-bottom: 20px;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        transition: all 0.3s;
+    }
+
+    .news-card:hover {
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .news-card .card-body {
+        padding: 15px;
+    }
+
+    .source-card {
+        margin-bottom: 20px;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        transition: all 0.3s;
+    }
+
+    .source-card:hover {
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .source-card .card-body {
+        padding: 15px;
+    }
+
+    .source-card .card-header {
+        background-color: #f8f9fa;
+        font-weight: bold;
+    }
+
+    .source-card .source-url {
+        color: #6c757d;
+        font-size: 0.9rem;
+        word-break: break-all;
+    }
+
+    .source-card .badge {
+        margin-right: 5px;
+    }
+
+    .section-title {
+        color: #0056b3;
+        border-bottom: 2px solid #0056b3;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+    }
+
+    .fetch-btn {
+        margin-top: 10px;
+    }
+
+    .fetch-options {
+        margin-top: 20px;
+        margin-bottom: 20px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+
+    .fetch-log {
+        max-height: 300px;
+        overflow-y: auto;
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        font-family: monospace;
+        margin-bottom: 20px;
+    }
+
+    .fetch-log .log-entry {
+        margin-bottom: 5px;
+        padding-bottom: 5px;
+        border-bottom: 1px dashed #dee2e6;
+    }
+
+    .fetch-log .log-time {
+        color: #6c757d;
+        font-size: 0.8rem;
+    }
+
+    .fetch-log .log-success {
+        color: #28a745;
+    }
+
+    .fetch-log .log-error {
+        color: #dc3545;
+    }
+
+    .fetch-log .log-info {
+        color: #17a2b8;
+    }
+
+    .news-preview {
+        margin-top: 20px;
+    }
+
+    .news-preview .preview-title {
+        font-weight: bold;
+        color: #0056b3;
+    }
+
+    .news-preview .preview-content {
+        max-height: 100px;
+        overflow-y: hidden;
+        margin-bottom: 10px;
+    }
+
+    .news-preview .preview-source {
+        font-style: italic;
+        color: #6c757d;
+    }
+
+    .news-preview .preview-date {
+        color: #6c757d;
+        font-size: 0.8rem;
+    }
+
+    .news-preview .preview-actions {
+        margin-top: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="section-title">
+        <i class="fas fa-robot me-2"></i>الجلب الآلي للأخبار
+    </h2>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-cogs me-2"></i>إعدادات الجلب الآلي
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="fetch-settings-form">
+                        <div class="mb-3">
+                            <label for="fetch-interval" class="form-label">الفاصل الزمني للجلب التلقائي (بالساعات)</label>
+                            <input type="number" class="form-control" id="fetch-interval" min="1" max="24" value="3">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="max-news" class="form-label">الحد الأقصى لعدد الأخبار لكل مصدر</label>
+                            <input type="number" class="form-control" id="max-news" min="1" max="50" value="10">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="fetch-method" class="form-label">طريقة الجلب</label>
+                            <select class="form-select" id="fetch-method">
+                                <option value="auto">تلقائي (اختيار الطريقة المناسبة)</option>
+                                <option value="headless">متصفح بدون واجهة (أكثر دقة)</option>
+                                <option value="scraper">زاحف عادي (أسرع)</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="filter-iraq" checked>
+                                <label class="form-check-label" for="filter-iraq">
+                                    جلب الأخبار المتعلقة بالعراق فقط
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="filter-today" checked>
+                                <label class="form-check-label" for="filter-today">
+                                    جلب أخبار اليوم فقط
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-primary" id="save-settings">
+                                <i class="fas fa-save me-1"></i>حفظ الإعدادات
+                            </button>
+                            <button type="button" class="btn btn-success" id="start-scheduler">
+                                <i class="fas fa-play me-1"></i>تشغيل المجدول
+                            </button>
+                            <button type="button" class="btn btn-danger" id="stop-scheduler">
+                                <i class="fas fa-stop me-1"></i>إيقاف المجدول
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>سجل الجلب
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="fetch-log">
+                        <div class="log-entry">
+                            <span class="log-time">18/05/2025 06:00:00</span>
+                            <span class="log-info">بدء عملية الجلب التلقائي...</span>
+                        </div>
+                        <div class="log-entry">
+                            <span class="log-time">18/05/2025 06:00:05</span>
+                            <span class="log-success">تم جلب 5 أخبار من موقع السومرية نيوز</span>
+                        </div>
+                        <div class="log-entry">
+                            <span class="log-time">18/05/2025 06:00:10</span>
+                            <span class="log-error">فشل في جلب الأخبار من موقع الجزيرة: خطأ في الاتصال</span>
+                        </div>
+                        <div class="log-entry">
+                            <span class="log-time">18/05/2025 06:00:15</span>
+                            <span class="log-success">تم جلب 3 أخبار من موقع بغداد اليوم</span>
+                        </div>
+                        <div class="log-entry">
+                            <span class="log-time">18/05/2025 06:00:20</span>
+                            <span class="log-info">اكتملت عملية الجلب. تم جلب 8 أخبار بنجاح.</span>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-center">
+                        <button type="button" class="btn btn-outline-secondary" id="clear-log">
+                            <i class="fas fa-trash me-1"></i>مسح السجل
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tachometer-alt me-2"></i>إحصائيات
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6>حالة المجدول</h6>
+                        <span class="badge bg-success">نشط</span>
+                    </div>
+
+                    <div class="mb-3">
+                        <h6>آخر تحديث</h6>
+                        <p>18/05/2025 06:00:20</p>
+                    </div>
+
+                    <div class="mb-3">
+                        <h6>التحديث القادم</h6>
+                        <p>18/05/2025 09:00:00</p>
+                    </div>
+
+                    <div class="mb-3">
+                        <h6>إجمالي الأخبار التي تم جلبها</h6>
+                        <p>1,245 خبر</p>
+                    </div>
+
+                    <div class="mb-3">
+                        <h6>نسبة نجاح الجلب</h6>
+                        <div class="progress">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: 85%;" aria-valuenow="85" aria-valuemin="0" aria-valuemax="100">85%</div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <form action="{{ url_for('fetch_news_now') }}" method="post">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-sync me-1"></i>جلب الأخبار الآن
+                            </button>
+                        </form>
+                        <a href="{{ url_for('auto_news') }}" class="btn btn-success">
+                            <i class="fas fa-newspaper me-1"></i>عرض أخبار الجلب التلقائي
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="fas fa-rss me-2"></i>المصادر النشطة
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group">
+                        {% for source in sources %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ source.name }}
+                            {% if source.is_active %}
+                            <span class="badge bg-success rounded-pill">نشط</span>
+                            {% else %}
+                            <span class="badge bg-secondary rounded-pill">غير نشط</span>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+
+                    <div class="d-grid mt-3">
+                        <a href="{{ url_for('manage_sources') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-cog me-1"></i>إدارة المصادر
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // هذا مجرد نموذج للعرض، يمكن تنفيذ الوظائف الفعلية لاحقًا
+    $(document).ready(function() {
+        // حفظ الإعدادات
+        $('#save-settings').click(function() {
+            alert('تم حفظ الإعدادات بنجاح');
+        });
+
+        // تشغيل المجدول
+        $('#start-scheduler').click(function() {
+            alert('تم تشغيل المجدول بنجاح');
+        });
+
+        // إيقاف المجدول
+        $('#stop-scheduler').click(function() {
+            alert('تم إيقاف المجدول بنجاح');
+        });
+
+        // مسح السجل
+        $('#clear-log').click(function() {
+            $('.fetch-log').html('<div class="log-entry"><span class="log-time">18/05/2025 06:10:00</span><span class="log-info">تم مسح السجل</span></div>');
+        });
+
+        // تم استبدال وظيفة جلب الأخبار بنموذج POST
+    });
+</script>
+{% endblock %}

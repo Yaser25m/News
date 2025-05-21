@@ -1,0 +1,170 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="card shadow">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h3 class="mb-0">إدارة التصنيفات</h3>
+        <a href="{{ url_for('add_category') }}" class="btn btn-light">إضافة تصنيف جديد</a>
+    </div>
+    <div class="card-body">
+        {% if categories %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>اسم التصنيف</th>
+                            <th>الوصف</th>
+                            <th>عدد الحقول الديناميكية</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for category in categories %}
+                            <tr>
+                                <td>{{ category.name }}</td>
+                                <td>{{ category.description or '-' }}</td>
+                                <td>{{ category.fields_count }}</td>
+                                <td>
+                                    <a href="{{ url_for('edit_category', category_id=category.id) }}" class="btn btn-sm btn-warning">
+                                        <i class="fas fa-edit"></i> تعديل
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-danger delete-category"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#deleteCategoryModal"
+                                            data-id="{{ category.id }}"
+                                            data-name="{{ category.name }}">
+                                        <i class="fas fa-trash"></i> حذف
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-info view-fields"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#viewFieldsModal"
+                                            data-id="{{ category.id }}"
+                                            data-name="{{ category.name }}">
+                                        <i class="fas fa-list"></i> عرض الحقول
+                                    </button>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                لا توجد تصنيفات مسجلة حالياً.
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal for Delete Confirmation -->
+<div class="modal fade" id="deleteCategoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">تأكيد الحذف</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>هل أنت متأكد من حذف التصنيف: <strong id="categoryNameToDelete"></strong>؟</p>
+                <p class="text-danger">ملاحظة: لا يمكن حذف التصنيف إذا كان هناك أخبار مرتبطة به.</p>
+            </div>
+            <div class="modal-footer">
+                <form id="deleteCategoryForm" method="POST" action="">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-danger">تأكيد الحذف</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for View Fields -->
+<div class="modal fade" id="viewFieldsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">الحقول الديناميكية للتصنيف: <span id="categoryNameForFields"></span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="fieldsContainer">
+                    <!-- سيتم ملء هذا القسم بالجافاسكريبت -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // تهيئة نافذة تأكيد الحذف
+        $('.delete-category').click(function() {
+            var categoryId = $(this).data('id');
+            var categoryName = $(this).data('name');
+
+            $('#categoryNameToDelete').text(categoryName);
+            $('#deleteCategoryForm').attr('action', '/categories/delete/' + categoryId);
+        });
+
+        // تهيئة نافذة عرض الحقول
+        $('.view-fields').click(function() {
+            var categoryId = $(this).data('id');
+            var categoryName = $(this).data('name');
+
+            $('#categoryNameForFields').text(categoryName);
+
+            var fieldsContainer = $('#fieldsContainer');
+            fieldsContainer.empty();
+
+            // جلب الحقول الديناميكية من الخادم
+            $.getJSON('/api/category/' + categoryId + '/fields', function(fields) {
+                if (fields.length > 0) {
+                    var tableHtml = '<table class="table table-bordered">';
+                    tableHtml += '<thead><tr><th>اسم الحقل</th><th>نوع الحقل</th><th>مطلوب</th><th>الخيارات</th></tr></thead>';
+                    tableHtml += '<tbody>';
+
+                    $.each(fields, function(i, field) {
+                        tableHtml += '<tr>';
+                        tableHtml += '<td>' + field.name + '</td>';
+
+                        var fieldTypeText = '';
+                        switch(field.type) {
+                            case 'text': fieldTypeText = 'نص'; break;
+                            case 'textarea': fieldTypeText = 'نص طويل'; break;
+                            case 'number': fieldTypeText = 'رقم'; break;
+                            case 'date': fieldTypeText = 'تاريخ'; break;
+                            case 'select': fieldTypeText = 'قائمة منسدلة'; break;
+                            default: fieldTypeText = field.type;
+                        }
+
+                        tableHtml += '<td>' + fieldTypeText + '</td>';
+                        tableHtml += '<td>' + (field.required ? 'نعم' : 'لا') + '</td>';
+
+                        var optionsText = '';
+                        if (field.options && field.options.length > 0) {
+                            optionsText = field.options.join(', ');
+                        } else {
+                            optionsText = '-';
+                        }
+
+                        tableHtml += '<td>' + optionsText + '</td>';
+                        tableHtml += '</tr>';
+                    });
+
+                    tableHtml += '</tbody></table>';
+                    fieldsContainer.append(tableHtml);
+                } else {
+                    fieldsContainer.append('<div class="alert alert-info">لا توجد حقول ديناميكية لهذا التصنيف.</div>');
+                }
+            }).fail(function() {
+                fieldsContainer.append('<div class="alert alert-danger">حدث خطأ أثناء جلب الحقول الديناميكية.</div>');
+            });
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,399 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- شريط التنقل -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('index') }}">الرئيسية</a></li>
+            <li class="breadcrumb-item active" aria-current="page">الأخبار</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0"><i class="fas fa-newspaper me-2"></i>قائمة الأخبار</h2>
+        <div>
+            <a href="{{ url_for('print_news') }}" class="btn btn-success me-2">
+                <i class="fas fa-print me-1"></i> طباعة الأخبار
+            </a>
+            <a href="{{ url_for('add_news') }}" class="btn btn-primary">
+                <i class="fas fa-plus-circle me-1"></i> إضافة خبر جديد
+            </a>
+        </div>
+    </div>
+
+    <!-- فلاتر البحث -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form id="filter-form" action="{{ url_for('view_news') }}" method="get">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label for="category_id" class="form-label">التصنيف</label>
+                        <select class="form-select" id="category_id" name="category_id">
+                            <option value="">جميع التصنيفات</option>
+                            {% for category in categories %}
+                                <option value="{{ category.id }}" {% if category_id and category_id|int == category.id %}selected{% endif %}>{{ category.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="governorate_id" class="form-label">المحافظة</label>
+                        <select class="form-select" id="governorate_id" name="governorate_id">
+                            <option value="">جميع المحافظات</option>
+                            {% for governorate in governorates %}
+                                <option value="{{ governorate.id }}" {% if governorate_id and governorate_id|int == governorate.id %}selected{% endif %}>{{ governorate.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="date" class="form-label">التاريخ</label>
+                        <input type="date" class="form-control" id="date" name="date" value="{{ date_filter }}">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="search" class="form-label">بحث</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="search" name="search" placeholder="ابحث عن..." value="{{ search_query }}">
+                            <button class="btn btn-primary" type="submit">
+                                <i class="fas fa-search"></i> بحث
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between mt-2">
+                    <button type="submit" class="btn btn-outline-primary">
+                        <i class="fas fa-filter me-1"></i> تطبيق الفلتر
+                    </button>
+                    <a href="{{ url_for('view_news') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-redo me-1"></i> إعادة ضبط
+                    </a>
+                </div>
+                <!-- حقل مخفي للحفاظ على رقم الصفحة الحالي عند تطبيق الفلتر -->
+                <input type="hidden" name="page" value="1">
+            </form>
+        </div>
+    </div>
+
+    {% if news_list %}
+        {% set grouped_news = {} %}
+        {% for news in news_list %}
+            {% set date_str = news.date|string %}
+            {% if date_str not in grouped_news %}
+                {% set _ = grouped_news.update({date_str: []}) %}
+            {% endif %}
+            {% set _ = grouped_news[date_str].append(news) %}
+        {% endfor %}
+
+        {% for date_str, news_group in grouped_news.items()|sort(reverse=true) %}
+            {% set sample_news = news_group[0] %}
+            <div class="col-12 mb-3 mt-4">
+                <div class="date-separator">
+                    <h3 class="date-heading">
+                        <i class="fas fa-calendar-day me-2"></i>
+                        أخبار {{ sample_news.date|format_date_arabic('full_levant') }}
+                    </h3>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover news-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col" width="50%">عنوان الخبر</th>
+                            <th scope="col" width="15%">التصنيف</th>
+                            <th scope="col" width="15%">المصدر</th>
+                            <th scope="col" width="20%">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for news in news_group %}
+                            <tr class="news-row">
+                                <td>
+                                    <a href="{{ url_for('view_news_details', news_id=news.id) }}" class="news-title-link">
+                                        {{ news.title }}
+                                    </a>
+                                    <div class="news-meta small text-muted mt-1">
+                                        <i class="fas fa-map-marker-alt me-1"></i> {{ news.governorate.name }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary">{{ news.category.name }}</span>
+                                </td>
+                                <td>
+                                    {% if news.source_url %}
+                                        <a href="{{ news.source_url }}" target="_blank" class="text-decoration-none source-link">
+                                            {{ news.source }}
+                                            <i class="fas fa-external-link-alt ms-1 small"></i>
+                                        </a>
+                                    {% else %}
+                                        {{ news.source }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{{ url_for('view_news_details', news_id=news.id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{{ url_for('edit_news', news_id=news.id) }}" class="btn btn-sm btn-outline-warning">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <button class="btn btn-sm btn-outline-danger delete-news-btn"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#deleteNewsModal"
+                                                data-id="{{ news.id }}"
+                                                data-title="{{ news.title }}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endfor %}
+
+        <!-- تقسيم الصفحات -->
+        <div class="col-12 mt-4">
+            <nav aria-label="تنقل الصفحات">
+                <ul class="pagination justify-content-center">
+                    {% if pagination.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('view_news', page=pagination.prev_num, category_id=category_id, governorate_id=governorate_id, date=date_filter, search=search_query) }}" aria-label="السابق">
+                                <span aria-hidden="true">&laquo;</span>
+                                <span class="sr-only">السابق</span>
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" aria-label="السابق">
+                                <span aria-hidden="true">&laquo;</span>
+                                <span class="sr-only">السابق</span>
+                            </a>
+                        </li>
+                    {% endif %}
+
+                    {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                        {% if page_num %}
+                            {% if page_num == pagination.page %}
+                                <li class="page-item active">
+                                    <a class="page-link" href="{{ url_for('view_news', page=page_num, category_id=category_id, governorate_id=governorate_id, date=date_filter, search=search_query) }}">{{ page_num }}</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('view_news', page=page_num, category_id=category_id, governorate_id=governorate_id, date=date_filter, search=search_query) }}">{{ page_num }}</a>
+                                </li>
+                            {% endif %}
+                        {% else %}
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#">...</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if pagination.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('view_news', page=pagination.next_num, category_id=category_id, governorate_id=governorate_id, date=date_filter, search=search_query) }}" aria-label="التالي">
+                                <span aria-hidden="true">&raquo;</span>
+                                <span class="sr-only">التالي</span>
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" aria-label="التالي">
+                                <span aria-hidden="true">&raquo;</span>
+                                <span class="sr-only">التالي</span>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i> لا توجد أخبار مسجلة حالياً.
+        </div>
+    {% endif %}
+</div>
+
+<style>
+    .hover-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .hover-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+    }
+
+    /* تنسيق فاصل التاريخ */
+    .date-separator {
+        position: relative;
+        margin: 20px 0 30px;
+        border-bottom: 2px solid #e0e0e0;
+        text-align: center;
+    }
+
+    .date-heading {
+        display: inline-block;
+        background: linear-gradient(135deg, #0d6efd, #0a58ca);
+        color: white;
+        padding: 10px 25px;
+        border-radius: 30px;
+        font-size: 1.3rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+        margin-bottom: 15px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .date-heading i {
+        color: #ffeb3b;
+        margin-left: 5px;
+    }
+
+    .date-separator::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: #e0e0e0;
+        top: 50%;
+        z-index: 0;
+    }
+
+    /* تنسيق جدول الأخبار */
+    .news-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .news-table thead th {
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+        font-weight: 600;
+        color: #495057;
+        padding: 12px 15px;
+    }
+
+    .news-row {
+        transition: all 0.2s ease;
+    }
+
+    .news-row:hover {
+        background-color: #f8f9fa;
+    }
+
+    .news-title-link {
+        color: #0d6efd;
+        text-decoration: none;
+        font-weight: 600;
+        display: block;
+        transition: color 0.2s ease;
+    }
+
+    .news-title-link:hover {
+        color: #0a58ca;
+        text-decoration: underline;
+    }
+
+    .source-link {
+        color: #6c757d;
+        transition: color 0.2s ease;
+    }
+
+    .source-link:hover {
+        color: #0d6efd;
+    }
+
+    /* تنسيق تقسيم الصفحات */
+    .pagination .page-link {
+        color: #0d6efd;
+        border-radius: 4px;
+        margin: 0 2px;
+    }
+
+    .pagination .page-item.active .page-link {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+
+    .pagination .page-link:focus {
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+</style>
+{% endblock %}
+
+<!-- نافذة تأكيد حذف الخبر -->
+<div class="modal fade" id="deleteNewsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">تأكيد حذف الخبر</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>هل أنت متأكد من حذف الخبر: <strong id="newsTitle"></strong>؟</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i> تحذير: لا يمكن التراجع عن هذه العملية.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <form id="deleteNewsForm" action="" method="POST">
+                    <button type="submit" class="btn btn-danger">حذف</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // تهيئة نافذة حذف الخبر
+        $('.delete-news-btn').click(function() {
+            var newsId = $(this).data('id');
+            var newsTitle = $(this).data('title');
+
+            $('#newsTitle').text(newsTitle);
+            $('#deleteNewsForm').attr('action', '/news/delete/' + newsId);
+        });
+
+        // تطبيق الفلتر عند تغيير أي حقل
+        $('#category_id, #governorate_id, #date').change(function() {
+            // إعادة تعيين رقم الصفحة إلى 1 عند تغيير الفلتر
+            $('input[name="page"]').val(1);
+
+            // إذا كان حقل البحث فارغًا، قم بإرسال النموذج
+            if ($('#search').val() === '') {
+                $('#filter-form').submit();
+            }
+        });
+
+        // تطبيق الفلتر عند الضغط على Enter في حقل البحث
+        $('#search').keypress(function(e) {
+            if (e.which === 13) {
+                e.preventDefault();
+                // إعادة تعيين رقم الصفحة إلى 1 عند تغيير الفلتر
+                $('input[name="page"]').val(1);
+                $('#filter-form').submit();
+            }
+        });
+
+        // إعادة ضبط الفلتر
+        $('.btn-outline-secondary').click(function(e) {
+            e.preventDefault();
+            $('#category_id').val('');
+            $('#governorate_id').val('');
+            $('#date').val('');
+            $('#search').val('');
+            window.location.href = "{{ url_for('view_news') }}";
+        });
+    });
+</script>
+{% endblock %}
+

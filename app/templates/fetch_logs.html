@@ -1,0 +1,240 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- شريط التنقل -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('index') }}">الرئيسية</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('manage_scheduler') }}">إدارة المجدول</a></li>
+            <li class="breadcrumb-item active" aria-current="page">سجلات الجلب</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0"><i class="fas fa-history me-2"></i>سجلات جلب الأخبار</h2>
+        <div>
+            <a href="{{ url_for('manage_scheduler') }}" class="btn btn-secondary me-2">
+                <i class="fas fa-arrow-left me-1"></i> العودة
+            </a>
+            <a href="{{ url_for('run_scheduler_manually') }}" class="btn btn-primary">
+                <i class="fas fa-download me-1"></i> جلب الأخبار يدويًا
+            </a>
+        </div>
+    </div>
+
+    <!-- فلتر السجلات -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="fas fa-filter me-2"></i>فلتر السجلات</h5>
+        </div>
+        <div class="card-body">
+            <form action="{{ url_for('view_fetch_logs') }}" method="GET" class="row g-3">
+                <div class="col-md-4">
+                    <label for="source_id" class="form-label">المصدر</label>
+                    <select class="form-select" id="source_id" name="source_id">
+                        <option value="">جميع المصادر</option>
+                        {% for source in sources %}
+                            <option value="{{ source.id }}" {% if request.args.get('source_id')|int == source.id %}selected{% endif %}>{{ source.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="status" class="form-label">الحالة</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="">جميع الحالات</option>
+                        <option value="success" {% if request.args.get('status') == 'success' %}selected{% endif %}>ناجح</option>
+                        <option value="error" {% if request.args.get('status') == 'error' %}selected{% endif %}>خطأ</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="date" class="form-label">التاريخ</label>
+                    <input type="date" class="form-control" id="date" name="date" value="{{ request.args.get('date', '') }}">
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-1"></i> بحث
+                    </button>
+                    <a href="{{ url_for('view_fetch_logs') }}" class="btn btn-secondary">
+                        <i class="fas fa-redo me-1"></i> إعادة تعيين
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- قائمة السجلات -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-light">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">قائمة سجلات الجلب</h5>
+                <span class="badge bg-primary">{{ logs|length }} سجل</span>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if logs %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>المعرف</th>
+                                <th>المصدر</th>
+                                <th>التاريخ</th>
+                                <th>الحالة</th>
+                                <th>عدد الأخبار</th>
+                                <th>التفاصيل</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in logs %}
+                                <tr>
+                                    <td>{{ log.id }}</td>
+                                    <td>{{ log.source.name }}</td>
+                                    <td>{{ log.fetch_date|format_date_arabic }}</td>
+                                    <td>
+                                        {% if log.status == 'success' %}
+                                            <span class="badge bg-success">ناجح</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">خطأ</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ log.news_count }}</td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-info" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#logDetailsModal"
+                                                data-id="{{ log.id }}"
+                                                data-source="{{ log.source.name }}"
+                                                data-date="{{ log.fetch_date|format_date_arabic }}"
+                                                data-status="{{ log.status }}"
+                                                data-count="{{ log.news_count }}"
+                                                data-error="{{ log.error_message or '' }}"
+                                                data-config="{{ log.config or '' }}">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> لا توجد سجلات جلب.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- نافذة تفاصيل السجل -->
+<div class="modal fade" id="logDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">تفاصيل سجل الجلب</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>المعرف:</strong> <span id="logId"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>المصدر:</strong> <span id="logSource"></span>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>التاريخ:</strong> <span id="logDate"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>الحالة:</strong> <span id="logStatus"></span>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <strong>عدد الأخبار:</strong> <span id="logCount"></span>
+                    </div>
+                </div>
+                
+                <div id="errorSection" class="mb-3" style="display: none;">
+                    <div class="alert alert-danger">
+                        <strong>رسالة الخطأ:</strong>
+                        <pre id="logError" class="mt-2"></pre>
+                    </div>
+                </div>
+                
+                <div id="configSection" class="mb-3" style="display: none;">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">معلومات إضافية</h6>
+                        </div>
+                        <div class="card-body">
+                            <pre id="logConfig"></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // عرض تفاصيل السجل
+        $('#logDetailsModal').on('show.bs.modal', function(event) {
+            var button = $(event.relatedTarget);
+            var id = button.data('id');
+            var source = button.data('source');
+            var date = button.data('date');
+            var status = button.data('status');
+            var count = button.data('count');
+            var error = button.data('error');
+            var config = button.data('config');
+            
+            var modal = $(this);
+            modal.find('#logId').text(id);
+            modal.find('#logSource').text(source);
+            modal.find('#logDate').text(date);
+            
+            if (status === 'success') {
+                modal.find('#logStatus').html('<span class="badge bg-success">ناجح</span>');
+            } else {
+                modal.find('#logStatus').html('<span class="badge bg-danger">خطأ</span>');
+            }
+            
+            modal.find('#logCount').text(count);
+            
+            // عرض رسالة الخطأ إذا وجدت
+            if (error) {
+                modal.find('#logError').text(error);
+                modal.find('#errorSection').show();
+            } else {
+                modal.find('#errorSection').hide();
+            }
+            
+            // عرض معلومات إضافية إذا وجدت
+            if (config) {
+                try {
+                    var configObj = JSON.parse(config);
+                    var formattedConfig = JSON.stringify(configObj, null, 2);
+                    modal.find('#logConfig').text(formattedConfig);
+                    modal.find('#configSection').show();
+                } catch (e) {
+                    modal.find('#logConfig').text(config);
+                    modal.find('#configSection').show();
+                }
+            } else {
+                modal.find('#configSection').hide();
+            }
+        });
+    });
+</script>
+{% endblock %}
+
+{% endblock %}

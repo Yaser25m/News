@@ -1,0 +1,147 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">تعديل التصنيف: {{ category.name }}</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('edit_category', category_id=category.id) }}">
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label for="name" class="form-label">اسم التصنيف</label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ category.name }}" required>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label for="description" class="form-label">وصف التصنيف</label>
+                            <textarea class="form-control" id="description" name="description" rows="2">{{ category.description or '' }}</textarea>
+                        </div>
+                    </div>
+
+                    <h4 class="mt-4 mb-3">الحقول الديناميكية</h4>
+                    <p class="text-muted">قم بتعديل الحقول الديناميكية التي ستظهر عند اختيار هذا التصنيف في نموذج إضافة الأخبار.</p>
+
+                    <div id="dynamic-fields-container">
+                        <!-- سيتم إضافة الحقول الديناميكية هنا بواسطة JavaScript -->
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <button type="button" id="add-field-btn" class="btn btn-success">
+                                <i class="fas fa-plus"></i> إضافة حقل جديد
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <button type="submit" class="btn btn-primary">حفظ</button>
+                            <a href="{{ url_for('manage_categories') }}" class="btn btn-secondary">إلغاء</a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        console.log("تحميل صفحة تعديل التصنيف");
+
+        var fieldCounter = 0;
+
+        // جلب الحقول الديناميكية من الخادم
+        $.getJSON('/api/category/{{ category.id }}/fields', function(fields) {
+            console.log("الحقول الديناميكية:", fields);
+
+            // إضافة الحقول الموجودة
+            for (var i = 0; i < fields.length; i++) {
+                addDynamicField(fields[i]);
+                fieldCounter++;
+            }
+        });
+
+        // إضافة حقل ديناميكي جديد
+        $('#add-field-btn').click(function() {
+            addDynamicField();
+            fieldCounter++;
+        });
+
+        // دالة إضافة حقل ديناميكي
+        function addDynamicField(fieldData = null) {
+            var fieldHtml = `
+                <div class="card mb-3 dynamic-field-card">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-11">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">اسم الحقل</label>
+                                        <input type="text" name="field_name" class="form-control field-name" value="${fieldData ? fieldData.name : ''}" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">نوع الحقل</label>
+                                        <select name="field_type" class="form-select field-type-select" required>
+                                            <option value="text" ${fieldData && fieldData.type === 'text' ? 'selected' : ''}>نص</option>
+                                            <option value="textarea" ${fieldData && fieldData.type === 'textarea' ? 'selected' : ''}>نص طويل</option>
+                                            <option value="number" ${fieldData && fieldData.type === 'number' ? 'selected' : ''}>رقم</option>
+                                            <option value="date" ${fieldData && fieldData.type === 'date' ? 'selected' : ''}>تاريخ</option>
+                                            <option value="select" ${fieldData && fieldData.type === 'select' ? 'selected' : ''}>قائمة منسدلة</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-12">
+                                        <div class="form-check">
+                                            <input class="form-check-input field-required" type="checkbox" name="field_required" ${fieldData && fieldData.required ? 'checked' : ''}>
+                                            <label class="form-check-label">
+                                                حقل مطلوب
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row field-options-row" style="${fieldData && fieldData.type === 'select' ? 'display: block;' : 'display: none;'}">
+                                    <div class="col-md-12">
+                                        <label class="form-label">خيارات القائمة المنسدلة (افصل بين الخيارات بفاصلة)</label>
+                                        <textarea name="field_options" class="form-control field-options" rows="2">${fieldData && fieldData.options ? fieldData.options.join(',') : ''}</textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-1 d-flex align-items-center justify-content-center">
+                                <button type="button" class="btn btn-danger remove-field-btn">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            $('#dynamic-fields-container').append(fieldHtml);
+        }
+
+        // حذف حقل ديناميكي
+        $(document).on('click', '.remove-field-btn', function() {
+            $(this).closest('.dynamic-field-card').remove();
+        });
+
+        // إظهار/إخفاء حقل الخيارات بناءً على نوع الحقل
+        $(document).on('change', '.field-type-select', function() {
+            var optionsRow = $(this).closest('.row').siblings('.field-options-row');
+            if ($(this).val() === 'select') {
+                optionsRow.show();
+            } else {
+                optionsRow.hide();
+            }
+        });
+    });
+</script>
+{% endblock %}

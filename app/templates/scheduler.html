@@ -1,0 +1,153 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- شريط التنقل -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('index') }}">الرئيسية</a></li>
+            <li class="breadcrumb-item active" aria-current="page">إدارة المجدول</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0"><i class="fas fa-clock me-2"></i>إدارة المجدول</h2>
+        <div>
+            <a href="{{ url_for('index') }}" class="btn btn-secondary me-2">
+                <i class="fas fa-arrow-left me-1"></i> العودة
+            </a>
+            <a href="{{ url_for('view_fetch_logs') }}" class="btn btn-info me-2">
+                <i class="fas fa-history me-1"></i> سجلات الجلب
+            </a>
+            <a href="{{ url_for('manage_scheduler', action='run_now') }}" class="btn btn-success me-2">
+                <i class="fas fa-play me-1"></i> تشغيل المجدول
+            </a>
+            <a href="{{ url_for('run_scheduler_manually') }}" class="btn btn-primary">
+                <i class="fas fa-download me-1"></i> جلب الأخبار يدويًا
+            </a>
+        </div>
+    </div>
+
+    <!-- معلومات المجدول -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>معلومات المجدول</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <strong>حالة المجدول:</strong>
+                        {% if scheduler_status %}
+                            <span class="badge bg-success">نشط</span>
+                        {% else %}
+                            <span class="badge bg-danger">متوقف</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <strong>عدد المهام:</strong>
+                        {{ jobs|length }}
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <strong>آخر تحديث:</strong>
+                        {{ now|format_date_arabic }}
+                    </div>
+                </div>
+            </div>
+            <div class="alert alert-info mb-0">
+                <i class="fas fa-lightbulb me-2"></i> المجدول يقوم بجلب الأخبار تلقائيًا من جميع المصادر النشطة وفقًا للجدول الزمني المحدد.
+            </div>
+        </div>
+    </div>
+
+    <!-- إعدادات المجدول -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="fas fa-cog me-2"></i>إعدادات المجدول</h5>
+        </div>
+        <div class="card-body">
+            <form action="{{ url_for('manage_scheduler') }}" method="POST">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="status" class="form-label">حالة المجدول</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="running" {% if scheduler_status %}selected{% endif %}>نشط</option>
+                                <option value="stopped" {% if not scheduler_status %}selected{% endif %}>متوقف</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="interval" class="form-label">فترة جلب الأخبار</label>
+                            <select class="form-select" id="interval" name="interval">
+                                <option value="1" {% if interval == 1 %}selected{% endif %}>كل ساعة</option>
+                                <option value="3" {% if interval == 3 %}selected{% endif %}>كل 3 ساعات</option>
+                                <option value="6" {% if interval == 6 %}selected{% endif %}>كل 6 ساعات</option>
+                                <option value="12" {% if interval == 12 %}selected{% endif %}>كل 12 ساعة</option>
+                                <option value="24" {% if interval == 24 %}selected{% endif %}>كل 24 ساعة</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i> حفظ الإعدادات
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- المهام المجدولة -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="fas fa-tasks me-2"></i>المهام المجدولة</h5>
+        </div>
+        <div class="card-body">
+            {% if jobs %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>اسم المهمة</th>
+                                <th>المعرف</th>
+                                <th>الجدول الزمني</th>
+                                <th>التشغيل التالي</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for job in jobs %}
+                                <tr>
+                                    <td>{{ job.name }}</td>
+                                    <td>{{ job.id }}</td>
+                                    <td>{{ job.trigger }}</td>
+                                    <td>{{ job.next_run_time|format_date_arabic if job.next_run_time else 'متوقف' }}</td>
+                                    <td>
+                                        <a href="{{ url_for('manage_scheduler', action='run_job', job_id=job.id) }}" class="btn btn-sm btn-success">
+                                            <i class="fas fa-play"></i>
+                                        </a>
+                                        <a href="{{ url_for('manage_scheduler', action='pause_job', job_id=job.id) }}" class="btn btn-sm btn-warning">
+                                            <i class="fas fa-pause"></i>
+                                        </a>
+                                        <a href="{{ url_for('manage_scheduler', action='resume_job', job_id=job.id) }}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-play-circle"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> لا توجد مهام مجدولة.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

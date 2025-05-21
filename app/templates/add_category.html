@@ -1,0 +1,150 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">إضافة تصنيف جديد</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('add_category') }}">
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label for="name" class="form-label">اسم التصنيف</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label for="description" class="form-label">وصف التصنيف</label>
+                            <textarea class="form-control" id="description" name="description" rows="2"></textarea>
+                        </div>
+                    </div>
+
+                    <h4 class="mt-4 mb-3">الحقول الديناميكية</h4>
+                    <p class="text-muted">أضف الحقول الديناميكية التي ستظهر عند اختيار هذا التصنيف في نموذج إضافة الأخبار.</p>
+
+                    <div id="dynamic-fields-container">
+                        <!-- سيتم إضافة الحقول الديناميكية هنا -->
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <button type="button" id="add-field-btn" class="btn btn-success">
+                                <i class="fas fa-plus"></i> إضافة حقل جديد
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <button type="submit" class="btn btn-primary">حفظ</button>
+                            <a href="{{ url_for('manage_categories') }}" class="btn btn-secondary">إلغاء</a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        var fieldCounter = 0;
+
+        // إضافة حقل ديناميكي جديد
+        $('#add-field-btn').click(function() {
+            addDynamicField();
+        });
+
+        // دالة إضافة حقل ديناميكي
+        function addDynamicField(fieldData = null) {
+            var fieldHtml = `
+                <div class="card mb-3 dynamic-field-card">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-11">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">اسم الحقل</label>
+                                        <input type="text" name="field_name" class="form-control field-name" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">نوع الحقل</label>
+                                        <select name="field_type" class="form-select field-type-select" required>
+                                            <option value="text">نص</option>
+                                            <option value="textarea">نص طويل</option>
+                                            <option value="number">رقم</option>
+                                            <option value="date">تاريخ</option>
+                                            <option value="select">قائمة منسدلة</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-12">
+                                        <div class="form-check">
+                                            <input class="form-check-input field-required" type="checkbox" name="field_required">
+                                            <label class="form-check-label">
+                                                حقل مطلوب
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row field-options-row" style="display: none;">
+                                    <div class="col-md-12">
+                                        <label class="form-label">خيارات القائمة المنسدلة (افصل بين الخيارات بفاصلة)</label>
+                                        <textarea name="field_options" class="form-control field-options" rows="2"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-1 d-flex align-items-center justify-content-center">
+                                <button type="button" class="btn btn-danger remove-field-btn">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            $('#dynamic-fields-container').append(fieldHtml);
+
+            // إذا كان هناك بيانات موجودة، قم بتعبئتها
+            if (fieldData) {
+                var card = $('#dynamic-fields-container').children().last();
+                card.find('.field-name').val(fieldData.name);
+                card.find('.field-type-select').val(fieldData.type);
+                card.find('.field-required').prop('checked', fieldData.required);
+
+                if (fieldData.type === 'select') {
+                    card.find('.field-options-row').show();
+                    if (fieldData.options && fieldData.options.length > 0) {
+                        card.find('.field-options').val(fieldData.options.join(','));
+                    }
+                }
+            }
+
+            fieldCounter++;
+        }
+
+        // حذف حقل ديناميكي
+        $(document).on('click', '.remove-field-btn', function() {
+            $(this).closest('.dynamic-field-card').remove();
+        });
+
+        // إظهار/إخفاء حقل الخيارات بناءً على نوع الحقل
+        $(document).on('change', '.field-type-select', function() {
+            var optionsRow = $(this).closest('.row').siblings('.field-options-row');
+            if ($(this).val() === 'select') {
+                optionsRow.show();
+            } else {
+                optionsRow.hide();
+            }
+        });
+    });
+</script>
+{% endblock %}

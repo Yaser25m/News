@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>الإحصائيات</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.rtl.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        @page {
+            size: A4;
+            margin: 1cm;
+        }
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background-color: white;
+            color: #333;
+            padding: 0;
+            margin: 0;
+        }
+        .print-container {
+            max-width: 1140px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .print-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #0d6efd;
+            text-align: center;
+        }
+        .print-header-logo {
+            max-height: 80px;
+        }
+        .print-header-content {
+            text-align: center;
+            flex-grow: 1;
+            margin: 0 20px;
+        }
+        .print-title {
+            font-size: 28px;
+            font-weight: bold;
+            margin: 5px 0;
+            color: #0d6efd;
+        }
+        .print-subtitle {
+            font-size: 20px;
+            color: #333;
+            margin: 5px 0;
+        }
+        .print-date {
+            font-size: 16px;
+            color: #6c757d;
+            margin: 5px 0;
+        }
+        .report-section {
+            margin-bottom: 30px;
+            page-break-inside: avoid;
+        }
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(to left, #0d6efd, #0a58ca);
+            color: white;
+            padding: 12px 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+        }
+        .category-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin: 0;
+        }
+        .category-count {
+            background-color: white;
+            color: #0d6efd;
+            padding: 5px 15px;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stats-card {
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+        .stats-value {
+            font-size: 36px;
+            font-weight: bold;
+            color: #0d6efd;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .stats-label {
+            font-size: 16px;
+            color: #495057;
+            text-align: center;
+            border-top: 1px dashed #dee2e6;
+            padding-top: 10px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 2px solid #0d6efd;
+        }
+        .footer-content {
+            text-align: center;
+        }
+        .footer-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #0d6efd;
+            margin-bottom: 5px;
+        }
+        .footer-text {
+            font-size: 14px;
+            color: #6c757d;
+        }
+        @media print {
+            .no-print {
+                display: none;
+            }
+            .page-break {
+                page-break-after: always;
+            }
+            body {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="print-container">
+        <div class="no-print mb-3 text-center">
+            <button onclick="window.print()" class="btn btn-primary btn-lg">
+                <i class="fas fa-print"></i> طباعة التقرير
+            </button>
+            <a href="{{ url_for('statistics') }}" class="btn btn-secondary btn-lg">
+                <i class="fas fa-arrow-right"></i> العودة للإحصائيات
+            </a>
+        </div>
+
+        <div class="print-header">
+            <img src="{{ url_for('static', filename='img/ihchr.png') }}" alt="شعار المفوضية" class="print-header-logo">
+            <div class="print-header-content">
+                <div class="print-title">الإحصائيات</div>
+                <div class="print-subtitle">نظام الرصد الإعلامي</div>
+                <div class="print-date">{{ today_date }}</div>
+            </div>
+            <img src="{{ url_for('static', filename='img/logo2.png') }}" alt="شعار النظام" class="print-header-logo">
+        </div>
+
+        {% for category in field_stats %}
+        {% if category.fields|selectattr('field_type', 'equalto', 'number')|list|length > 0 %}
+        <div class="report-section">
+            <div class="category-header">
+                <h2 class="category-title">{{ category.category_name }}</h2>
+                <span class="category-count">عدد الأخبار: {{ category.news_count }}</span>
+            </div>
+
+            <div class="stats-grid">
+                {% for field in category.fields %}
+                {% if field.field_type == 'number' %}
+                <div class="stats-card">
+                    <div class="stats-value">{{ field.total }}</div>
+                    <div class="stats-label">{{ field.name }}</div>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+
+        <div class="footer">
+            <div class="footer-content">
+                <div class="footer-title">نظام الرصد الإعلامي</div>
+                <div class="footer-text">{{ today_date }}</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/fontawesome.min.js') }}"></script>
+    <script>
+        // تعيين عنوان الصفحة
+        document.title = "الإحصائيات";
+
+        // تنفيذ الطباعة تلقائياً عند الضغط على Ctrl+P
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'p') {
+                e.preventDefault();
+                window.print();
+            }
+        });
+
+        // إزالة الزوائد من URL الصفحة في شريط العنوان
+        if (window.history && window.history.replaceState) {
+            window.history.replaceState({}, "الإحصائيات", "/");
+        }
+
+        // تغيير عنوان الصفحة بشكل دوري للتأكد من عدم ظهور الزوائد
+        setInterval(function() {
+            if (document.title !== "الإحصائيات") {
+                document.title = "الإحصائيات";
+            }
+        }, 100);
+    </script>
+</body>
+</html>

@@ -1,0 +1,472 @@
+{% extends "layout.html" %}
+
+{% block styles %}
+<style>
+    /* تصميم مشابه لموقع هذا اليوم */
+    .news-header {
+        background-color: #0056b3;
+        color: white;
+        padding: 10px 0;
+        margin-bottom: 20px;
+    }
+
+    .news-title {
+        color: #dc3545;
+        font-weight: bold;
+    }
+
+    .news-source {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+
+    .news-date {
+        color: #6c757d;
+        font-size: 0.8rem;
+    }
+
+    .news-card {
+        margin-bottom: 20px;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        transition: all 0.3s;
+    }
+
+    .news-card:hover {
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .news-card .card-body {
+        padding: 15px;
+    }
+
+    .governorates-list {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+    }
+
+    .governorates-list h3 {
+        color: #0056b3;
+        border-bottom: 2px solid #0056b3;
+        padding-bottom: 10px;
+        margin-bottom: 15px;
+    }
+
+    .governorates-list ul {
+        list-style: none;
+        padding: 0;
+        display: flex;
+        flex-wrap: wrap;
+    }
+
+    .governorates-list li {
+        margin-left: 15px;
+        margin-bottom: 10px;
+    }
+
+    .governorates-list a {
+        color: #495057;
+        text-decoration: none;
+        transition: all 0.3s;
+    }
+
+    .governorates-list a:hover {
+        color: #0056b3;
+        text-decoration: underline;
+    }
+
+    .breaking-news {
+        background-color: #dc3545;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 3px;
+        font-size: 0.8rem;
+        margin-left: 10px;
+    }
+
+    .categories-nav {
+        background-color: #343a40;
+        padding: 10px 0;
+        margin-bottom: 20px;
+    }
+
+    .categories-nav ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-wrap: wrap;
+    }
+
+    .categories-nav li {
+        margin-left: 20px;
+    }
+
+    .categories-nav a {
+        color: white;
+        text-decoration: none;
+        transition: all 0.3s;
+    }
+
+    .categories-nav a:hover {
+        color: #17a2b8;
+    }
+
+    .news-section-title {
+        color: #0056b3;
+        border-bottom: 2px solid #0056b3;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+    }
+
+    .auto-news-header {
+        background-color: #17a2b8;
+        color: white;
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+    }
+
+    .auto-news-header h2 {
+        margin: 0;
+        font-size: 1.5rem;
+    }
+
+    .auto-news-header p {
+        margin: 5px 0 0 0;
+        opacity: 0.8;
+    }
+
+    .news-filter {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+    }
+
+    .news-actions {
+        margin-top: 10px;
+    }
+
+    .news-content {
+        max-height: 100px;
+        overflow: hidden;
+        margin-bottom: 10px;
+        position: relative;
+    }
+
+    .news-content::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 30px;
+        background: linear-gradient(transparent, white);
+    }
+
+    .news-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 10px;
+        font-size: 0.9rem;
+        color: #6c757d;
+    }
+
+    .source-badge {
+        background-color: #17a2b8;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 3px;
+        font-size: 0.8rem;
+        display: inline-block;
+        width: 100%;
+        text-align: center;
+    }
+
+    .auto-badge {
+        background-color: #28a745;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 3px;
+        font-size: 0.8rem;
+        margin-right: 5px;
+    }
+
+    /* أنماط جدول الأخبار */
+    .table-responsive {
+        margin-bottom: 20px;
+    }
+
+    .table {
+        font-size: 0.95rem;
+    }
+
+    .table thead th {
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    .table tbody td {
+        vertical-align: middle;
+    }
+
+    .table .news-title {
+        display: block;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .table .news-date {
+        display: block;
+        text-align: center;
+        width: 100%;
+    }
+
+    .table .btn-group {
+        display: flex;
+        justify-content: center;
+    }
+
+    .news-ticker {
+        background-color: #dc3545;
+        color: white;
+        padding: 10px 0;
+        margin-bottom: 20px;
+        overflow: hidden;
+    }
+
+    .ticker-content {
+        white-space: nowrap;
+        animation: ticker 30s linear infinite;
+        display: inline-block;
+    }
+
+    @keyframes ticker {
+        0% { transform: translateX(100%); }
+        100% { transform: translateX(-100%); }
+    }
+
+    .ticker-item {
+        margin-right: 50px;
+        display: inline-block;
+    }
+
+    .ticker-item a {
+        color: white;
+        text-decoration: none;
+    }
+
+    .ticker-item a:hover {
+        text-decoration: underline;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- تم إزالة المانشيت المتحرك بناءً على طلب المستخدم -->
+
+<div class="categories-nav">
+    <div class="container">
+        <ul>
+            <li><a href="{{ url_for('index') }}">الرئيسية</a></li>
+            {% for category in categories %}
+            <li><a href="{{ url_for('view_news_by_category', category_id=category.id) }}">{{ category.name }}</a></li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<div class="governorates-list">
+    <div class="container">
+        <h3>أخبار العراق الآن</h3>
+        <ul>
+            {% for governorate in governorates %}
+            <li><a href="{{ url_for('view_news_by_governorate', governorate_id=governorate.id) }}">{{ governorate.name }}</a></li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<div class="container">
+    <div class="auto-news-header">
+        <h2><i class="fas fa-robot me-2"></i>أخبار الجلب التلقائي</h2>
+        <p>آخر تحديث: {{ now|format_date_arabic('full') }} - {{ now.strftime('%H:%M') }}</p>
+        <div class="alert alert-info mt-2">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>ملاحظة هامة:</strong> يتم جلب الأخبار <strong>المتعلقة بالعراق فقط</strong> والمنشورة في <strong>تاريخ اليوم</strong> تلقائيًا من المصادر الإخبارية. يمكنك الضغط على عنوان الخبر لفتح المصدر الأصلي، أو حفظ الخبر في قاعدة البيانات بعد اختيار التصنيف والمحافظة المناسبة.
+        </div>
+        <div class="alert alert-warning mt-2">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>تنبيه:</strong> يتم التحقق من محتوى الخبر للتأكد من أنه يتعلق بالعراق ومنشور في تاريخ اليوم. قد تختلف صيغ التواريخ بين المصادر المختلفة، لذا يرجى التحقق من تاريخ النشر قبل حفظ الخبر.
+        </div>
+    </div>
+
+    <div class="news-filter">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="mb-3">
+                    <label for="source-filter" class="form-label">المصدر</label>
+                    <select class="form-select" id="source-filter">
+                        <option value="">جميع المصادر</option>
+                        {% for source in sources %}
+                        <option value="{{ source.id }}">{{ source.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="mb-3">
+                    <label for="date-filter" class="form-label">التاريخ</label>
+                    <input type="date" class="form-control" id="date-filter">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="mb-3">
+                    <label for="keyword-filter" class="form-label">كلمة مفتاحية</label>
+                    <input type="text" class="form-control" id="keyword-filter" placeholder="ابحث...">
+                </div>
+            </div>
+        </div>
+        <div class="d-flex justify-content-between">
+            <button type="button" class="btn btn-primary" id="apply-filter">
+                <i class="fas fa-filter me-1"></i>تطبيق الفلتر
+            </button>
+            <button type="button" class="btn btn-outline-secondary" id="reset-filter">
+                <i class="fas fa-redo me-1"></i>إعادة ضبط
+            </button>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover table-striped">
+            <thead class="table-dark">
+                <tr>
+                    <th scope="col" width="60%">عنوان الخبر</th>
+                    <th scope="col" width="15%">المصدر</th>
+                    <th scope="col" width="15%">التاريخ</th>
+                    <th scope="col" width="10%">الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for news in auto_news %}
+                <tr>
+                    <td>
+                        <a href="{{ news.source_url }}" target="_blank" class="text-decoration-none news-title" title="فتح المصدر الأصلي للخبر">{{ news.title }}</a>
+                    </td>
+                    <td>
+                        <span class="source-badge">{{ news.source }}</span>
+                    </td>
+                    <td>
+                        <span class="news-date">{{ news.date|format_date_arabic }}</span>
+                    </td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <a href="{{ url_for('view_news_details', news_id=news.id) }}" class="btn btn-sm btn-outline-primary" title="عرض تفاصيل الخبر">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-success save-news" data-bs-toggle="modal" data-bs-target="#saveNewsModal{{ news.id }}" title="حفظ الخبر في قاعدة البيانات">
+                                <i class="fas fa-save"></i>
+                            </button>
+                        </div>
+
+                        <!-- نموذج حفظ الخبر -->
+                        <div class="modal fade" id="saveNewsModal{{ news.id }}" tabindex="-1" aria-labelledby="saveNewsModalLabel{{ news.id }}" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="saveNewsModalLabel{{ news.id }}">حفظ الخبر</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                                    </div>
+                                    <form action="{{ url_for('save_scraped_news', news_id=news.id) }}" method="post">
+                                        <div class="modal-body">
+                                            <h6 class="news-title mb-3">{{ news.title }}</h6>
+
+                                            <div class="mb-3">
+                                                <label for="category_id{{ news.id }}" class="form-label">التصنيف</label>
+                                                <select class="form-select" id="category_id{{ news.id }}" name="category_id" required>
+                                                    <option value="">اختر التصنيف</option>
+                                                    {% for category in categories %}
+                                                    <option value="{{ category.id }}">{{ category.name }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label for="governorate_id{{ news.id }}" class="form-label">المحافظة</label>
+                                                <select class="form-select" id="governorate_id{{ news.id }}" name="governorate_id" required>
+                                                    <option value="">اختر المحافظة</option>
+                                                    {% for governorate in governorates %}
+                                                    <option value="{{ governorate.id }}">{{ governorate.name }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                                            <button type="submit" class="btn btn-primary">حفظ الخبر</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if not auto_news %}
+    <div class="alert alert-info text-center">
+        لا توجد أخبار تم جلبها تلقائياً حالياً
+    </div>
+    {% endif %}
+
+    <div class="d-flex justify-content-between mt-4 mb-5">
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('auto_news') }}#settings" class="btn btn-primary">
+                <i class="fas fa-cog me-1"></i>إعدادات الجلب الآلي
+            </a>
+            <form action="{{ url_for('clean_auto_news') }}" method="post" onsubmit="return confirm('هل أنت متأكد من رغبتك في تنظيف جميع الأخبار التي لم يتم حفظها؟');">
+                <button type="submit" class="btn btn-danger">
+                    <i class="fas fa-trash-alt me-1"></i>تنظيف الأخبار
+                </button>
+            </form>
+        </div>
+        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-home me-1"></i>العودة للرئيسية
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // تطبيق الفلتر
+        $('#apply-filter').click(function() {
+            var source = $('#source-filter').val();
+            var date = $('#date-filter').val();
+            var keyword = $('#keyword-filter').val();
+
+            // يمكن إضافة منطق الفلترة هنا
+            alert('تم تطبيق الفلتر: المصدر=' + source + '، التاريخ=' + date + '، الكلمة المفتاحية=' + keyword);
+        });
+
+        // إعادة ضبط الفلتر
+        $('#reset-filter').click(function() {
+            $('#source-filter').val('');
+            $('#date-filter').val('');
+            $('#keyword-filter').val('');
+        });
+
+        // تم استبدال وظيفة حفظ الخبر بنموذج منبثق
+    });
+</script>
+{% endblock %}

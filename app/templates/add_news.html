@@ -1,0 +1,136 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">إضافة خبر جديد</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('add_news') }}">
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label for="title" class="form-label">عنوان الخبر</label>
+                            <input type="text" class="form-control" id="title" name="title" required>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label for="content" class="form-label">تفاصيل الخبر</label>
+                            <textarea class="form-control" id="content" name="content" rows="5" required></textarea>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="governorate_id" class="form-label">المحافظة</label>
+                            <select class="form-select" id="governorate_id" name="governorate_id" required>
+                                <option value="">اختر المحافظة</option>
+                                {% for governorate in governorates %}
+                                    <option value="{{ governorate.id }}">{{ governorate.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="date" class="form-label">التاريخ</label>
+                            <input type="date" class="form-control" id="date" name="date" required>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="source" class="form-label">المصدر</label>
+                            <input type="text" class="form-control" id="source" name="source" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="source_url" class="form-label">رابط المصدر</label>
+                            <input type="url" class="form-control" id="source_url" name="source_url">
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label for="category_id" class="form-label">التصنيف</label>
+                            <select class="form-select" id="category_id" name="category_id" required>
+                                <option value="">اختر التصنيف</option>
+                                {% for category in categories %}
+                                    <option value="{{ category.id }}">{{ category.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- الحقول الديناميكية ستظهر هنا -->
+                    <div id="dynamic-fields" class="mb-3"></div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <button type="submit" class="btn btn-primary">حفظ</button>
+                            <a href="{{ url_for('view_news') }}" class="btn btn-secondary">إلغاء</a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // عند تغيير التصنيف، جلب الحقول الديناميكية
+        $('#category_id').change(function() {
+            var categoryId = $(this).val();
+            if (categoryId) {
+                $.getJSON('/api/category/' + categoryId + '/fields', function(fields) {
+                    var dynamicFields = $('#dynamic-fields');
+                    dynamicFields.empty();
+
+                    if (fields.length > 0) {
+                        dynamicFields.append('<h4 class="mt-4 mb-3">الحقول الإضافية للتصنيف</h4>');
+
+                        $.each(fields, function(i, field) {
+                            var fieldId = 'field_' + field.id;
+                            var fieldHtml = '<div class="mb-3">';
+                            fieldHtml += '<label for="' + fieldId + '" class="form-label">' + field.name;
+
+                            if (field.required) {
+                                fieldHtml += ' <span class="text-danger">*</span>';
+                            }
+
+                            fieldHtml += '</label>';
+
+                            if (field.type === 'text') {
+                                fieldHtml += '<input type="text" class="form-control" id="' + fieldId + '" name="' + fieldId + '"' + (field.required ? ' required' : '') + '>';
+                            } else if (field.type === 'textarea') {
+                                fieldHtml += '<textarea class="form-control" id="' + fieldId + '" name="' + fieldId + '" rows="3"' + (field.required ? ' required' : '') + '></textarea>';
+                            } else if (field.type === 'number') {
+                                fieldHtml += '<input type="number" class="form-control" id="' + fieldId + '" name="' + fieldId + '"' + (field.required ? ' required' : '') + '>';
+                            } else if (field.type === 'date') {
+                                fieldHtml += '<input type="date" class="form-control" id="' + fieldId + '" name="' + fieldId + '"' + (field.required ? ' required' : '') + '>';
+                            } else if (field.type === 'select') {
+                                fieldHtml += '<select class="form-select" id="' + fieldId + '" name="' + fieldId + '"' + (field.required ? ' required' : '') + '>';
+                                fieldHtml += '<option value="">اختر...</option>';
+                                $.each(field.options, function(j, option) {
+                                    fieldHtml += '<option value="' + option + '">' + option + '</option>';
+                                });
+                                fieldHtml += '</select>';
+                            }
+
+                            fieldHtml += '</div>';
+                            dynamicFields.append(fieldHtml);
+                        });
+                    }
+                });
+            } else {
+                $('#dynamic-fields').empty();
+            }
+        });
+    });
+</script>
+{% endblock %}

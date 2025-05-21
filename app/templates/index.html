@@ -1,0 +1,238 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<!-- شريط الأخبار العاجلة -->
+<div class="breaking-news-bar bg-danger text-white py-2">
+    <div class="container">
+        <div class="d-flex align-items-center">
+            <div class="me-3">
+                <i class="fas fa-bolt"></i> <strong>أحدث الأخبار</strong>
+            </div>
+            <div class="ticker-wrapper">
+                <div class="ticker">
+                    {% for news in latest_news[:5] %}
+                    <div class="ticker-item">
+                        <a href="{{ url_for('view_news_details', news_id=news.id) }}" class="text-white">
+                            <i class="fas fa-circle-notch me-1"></i> {{ news.title|truncate(80) }} ({{ news.date|format_date_arabic('short') }})
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- القسم الرئيسي -->
+<div class="hero-section bg-primary text-white py-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-6 text-center text-md-end order-md-1">
+                <div class="logo-container mb-4">
+                    <img src="{{ url_for('static', filename='img/logo2.png') }}" alt="شعار نظام الرصد الإعلامي" class="hero-logo floating-logo">
+                </div>
+            </div>
+            <div class="col-md-6 text-center text-md-start order-md-0">
+                <h1 class="display-4 fw-bold">
+                    <img src="{{ url_for('static', filename='img/logo2.png') }}" alt="شعار صغير" class="small-logo floating-logo me-2" style="width: 40px; height: auto;">
+                    نظام الرصد الإعلامي
+                </h1>
+                <p class="lead">منصة متكاملة لإدارة ومتابعة الأخبار والتقارير الإعلامية بطريقة احترافية وفعالة</p>
+                <div class="mt-4 text-end">
+                    <a href="{{ url_for('add_news') }}" class="btn btn-light btn-lg me-2">
+                        <i class="fas fa-plus-circle me-2"></i>إضافة خبر جديد
+                    </a>
+                    <a href="{{ url_for('view_news') }}" class="btn btn-outline-light btn-lg">
+                        <i class="fas fa-newspaper me-2"></i>عرض الأخبار
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- إحصائيات النظام -->
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-3 mb-4">
+            <div class="card text-center bg-primary text-white h-100">
+                <div class="card-body">
+                    <h1 class="display-4 fw-bold">{{ news_count }}</h1>
+                    <p class="lead">إجمالي الأخبار</p>
+                    <i class="fas fa-newspaper fa-3x opacity-25 position-absolute bottom-0 end-0 mb-3 me-3"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card text-center bg-success text-white h-100">
+                <div class="card-body">
+                    <h1 class="display-4 fw-bold">{{ categories_count }}</h1>
+                    <p class="lead">التصنيفات</p>
+                    <i class="fas fa-tags fa-3x opacity-25 position-absolute bottom-0 end-0 mb-3 me-3"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card text-center bg-info text-white h-100">
+                <div class="card-body">
+                    <h1 class="display-4 fw-bold">{{ governorates_count }}</h1>
+                    <p class="lead">المحافظات</p>
+                    <i class="fas fa-map-marker-alt fa-3x opacity-25 position-absolute bottom-0 end-0 mb-3 me-3"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card text-center bg-warning text-white h-100">
+                <div class="card-body">
+                    <h1 class="display-4 fw-bold"><i class="fas fa-calendar-day"></i></h1>
+                    <p class="lead">{{ today }}</p>
+                    <i class="fas fa-clock fa-3x opacity-25 position-absolute bottom-0 end-0 mb-3 me-3"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- أحدث الأخبار -->
+<div class="container mt-5">
+    <div class="section-header d-flex align-items-center justify-content-between mb-4">
+        <h2 class="mb-0"><i class="fas fa-bolt me-2"></i>أحدث الأخبار</h2>
+        <a href="{{ url_for('view_news') }}" class="btn btn-outline-primary">عرض كل الأخبار</a>
+    </div>
+
+    <div class="row">
+        {% for news in latest_news[:6] %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 shadow-sm hover-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="badge bg-primary">{{ news.category.name }}</span>
+                    <small><i class="fas fa-calendar-alt me-1"></i> {{ news.date|format_date_arabic('short') }}</small>
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title text-primary">{{ news.title|truncate(60) }}</h5>
+                    <p class="card-subtitle mb-2 text-muted small">
+                        <i class="fas fa-map-marker-alt me-1"></i> {{ news.governorate.name }}
+                        <span class="mx-2">|</span>
+                        <i class="fas fa-newspaper me-1"></i> {{ news.source }}
+                    </p>
+                    <p class="card-text">{{ news.content|truncate(100) }}</p>
+                </div>
+                <div class="card-footer bg-white border-top-0">
+                    <a href="{{ url_for('view_news_details', news_id=news.id) }}" class="btn btn-sm btn-outline-primary w-100">
+                        <i class="fas fa-eye me-1"></i> عرض التفاصيل
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- الأقسام الرئيسية -->
+<div class="container mt-5 mb-5">
+    <div class="section-header mb-4">
+        <h2 class="text-center"><i class="fas fa-th-large me-2"></i>الأقسام الرئيسية</h2>
+    </div>
+
+    <div class="row">
+        <div class="col-md-3 mb-4">
+            <div class="card h-100 text-center border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="icon-container mb-3">
+                        <i class="fas fa-newspaper text-primary" style="font-size: 3rem;"></i>
+                    </div>
+                    <h4>إدارة الأخبار</h4>
+                    <p class="text-muted">إضافة وتعديل وعرض الأخبار المختلفة بكافة تصنيفاتها</p>
+                </div>
+                <div class="card-footer bg-white border-top-0">
+                    <a href="{{ url_for('view_news') }}" class="btn btn-primary">
+                        <i class="fas fa-cog me-1"></i> إدارة الأخبار
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card h-100 text-center border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="icon-container mb-3">
+                        <i class="fas fa-tags text-primary" style="font-size: 3rem;"></i>
+                    </div>
+                    <h4>إدارة التصنيفات</h4>
+                    <p class="text-muted">إضافة وتعديل وعرض تصنيفات الأخبار والحقول الديناميكية</p>
+                </div>
+                <div class="card-footer bg-white border-top-0">
+                    <a href="{{ url_for('manage_categories') }}" class="btn btn-primary">
+                        <i class="fas fa-cog me-1"></i> إدارة التصنيفات
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card h-100 text-center border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="icon-container mb-3">
+                        <i class="fas fa-map-marker-alt text-primary" style="font-size: 3rem;"></i>
+                    </div>
+                    <h4>إدارة المحافظات</h4>
+                    <p class="text-muted">إضافة وتعديل وعرض المحافظات المختلفة في النظام</p>
+                </div>
+                <div class="card-footer bg-white border-top-0">
+                    <a href="{{ url_for('manage_governorates') }}" class="btn btn-primary">
+                        <i class="fas fa-cog me-1"></i> إدارة المحافظات
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card h-100 text-center border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="icon-container mb-3">
+                        <i class="fas fa-rss text-primary" style="font-size: 3rem;"></i>
+                    </div>
+                    <h4>مصادر الأخبار</h4>
+                    <p class="text-muted">إدارة مصادر الأخبار وجلب الأخبار تلقائياً من المواقع الإخبارية</p>
+                </div>
+                <div class="card-footer bg-white border-top-0">
+                    <a href="{{ url_for('auto_news') }}" class="btn btn-success btn-lg w-100">
+                        <i class="fas fa-robot me-1"></i> الجلب التلقائي للأخبار
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .hover-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .hover-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+    }
+    .breaking-news-bar {
+        overflow: hidden;
+    }
+    .ticker-wrapper {
+        width: 100%;
+        overflow: hidden;
+    }
+    .ticker {
+        display: flex;
+        animation: ticker 60s linear infinite;
+        white-space: nowrap;
+    }
+    .ticker-item {
+        margin-right: 80px;
+    }
+    @keyframes ticker {
+        0% { transform: translateX(100%); }
+        100% { transform: translateX(-100%); }
+    }
+
+    /* إيقاف الحركة عند تمرير المؤشر */
+    .ticker:hover {
+        animation-play-state: paused;
+    }
+</style>
+{% endblock %}

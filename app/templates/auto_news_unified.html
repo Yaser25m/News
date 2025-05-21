@@ -1,0 +1,1113 @@
+{% extends "layout.html" %}
+
+{% block styles %}
+<style>
+    /* تصميم مشابه لموقع هذا اليوم */
+    .news-header {
+        background-color: #0056b3;
+        color: white;
+        padding: 10px 0;
+        margin-bottom: 20px;
+    }
+
+    .news-title {
+        color: #dc3545;
+        font-weight: bold;
+        display: block;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .news-source {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+
+    .source-badge {
+        background-color: #17a2b8;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 3px;
+        font-size: 0.8rem;
+        display: inline-block;
+        width: 100%;
+        text-align: center;
+    }
+
+    .news-date {
+        color: #6c757d;
+        font-size: 0.8rem;
+        display: block;
+        text-align: center;
+        width: 100%;
+    }
+
+    .auto-badge {
+        background-color: #28a745;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 3px;
+        font-size: 0.8rem;
+        margin-right: 5px;
+    }
+
+    .news-card {
+        margin-bottom: 20px;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        transition: all 0.3s;
+    }
+
+    .news-card:hover {
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .news-card .card-body {
+        padding: 15px;
+    }
+
+    .source-card {
+        margin-bottom: 20px;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        transition: all 0.3s;
+    }
+
+    .source-card:hover {
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .source-card .card-body {
+        padding: 15px;
+    }
+
+    .fetch-log {
+        max-height: 200px;
+        overflow-y: auto;
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        padding: 10px;
+        margin-bottom: 15px;
+    }
+
+    .log-entry {
+        margin-bottom: 5px;
+        font-family: monospace;
+    }
+
+    .log-time {
+        color: #6c757d;
+        margin-right: 10px;
+    }
+
+    .log-info {
+        color: #0d6efd;
+    }
+
+    .log-success {
+        color: #198754;
+    }
+
+    .log-error {
+        color: #dc3545;
+    }
+
+    .log-warning {
+        color: #ffc107;
+    }
+
+    /* أنماط جدول الأخبار */
+    .table-responsive {
+        margin-bottom: 20px;
+    }
+
+    .table {
+        font-size: 0.95rem;
+    }
+
+    .table thead th {
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    .table tbody td {
+        vertical-align: middle;
+    }
+
+    .table .btn-group {
+        display: flex;
+        justify-content: center;
+    }
+
+    /* تبويبات الصفحة */
+    .nav-tabs {
+        margin-bottom: 20px;
+    }
+
+    .nav-tabs .nav-link {
+        font-weight: bold;
+    }
+
+    .nav-tabs .nav-link.active {
+        border-bottom: 3px solid #0d6efd;
+    }
+
+    .tab-content {
+        padding: 20px 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- شريط التنقل -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('index') }}">الرئيسية</a></li>
+            <li class="breadcrumb-item active" aria-current="page">الجلب التلقائي للأخبار</li>
+        </ol>
+    </nav>
+
+    <div class="auto-news-header mb-4">
+        <h2><i class="fas fa-robot me-2"></i>الجلب التلقائي للأخبار</h2>
+        <p>آخر تحديث: {{ now|format_date_arabic('full') }} - {{ now.strftime('%H:%M') }}</p>
+        <div class="alert alert-info mt-2">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>ملاحظة هامة:</strong> يتم جلب الأخبار <strong>المتعلقة بالعراق فقط</strong> والمنشورة في <strong>تاريخ اليوم</strong> تلقائيًا من المصادر الإخبارية. يمكنك الضغط على عنوان الخبر لفتح المصدر الأصلي، أو حفظ الخبر في قاعدة البيانات بعد اختيار التصنيف والمحافظة المناسبة.
+        </div>
+        <div class="alert alert-warning mt-2">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>تنبيه:</strong> يتم التحقق من محتوى الخبر للتأكد من أنه يتعلق بالعراق ومنشور في تاريخ اليوم. قد تختلف صيغ التواريخ بين المصادر المختلفة، لذا يرجى التحقق من تاريخ النشر قبل حفظ الخبر.
+        </div>
+    </div>
+
+    <!-- تبويبات الصفحة -->
+    <ul class="nav nav-tabs" id="autoNewsTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="news-tab" data-bs-toggle="tab" data-bs-target="#news" type="button" role="tab" aria-controls="news" aria-selected="true">
+                <i class="fas fa-newspaper me-1"></i>الأخبار المجلوبة
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab" aria-controls="settings" aria-selected="false">
+                <i class="fas fa-cogs me-1"></i>إعدادات الجلب
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="sources-tab" data-bs-toggle="tab" data-bs-target="#sources" type="button" role="tab" aria-controls="sources" aria-selected="false">
+                <i class="fas fa-rss me-1"></i>المصادر النشطة
+            </button>
+        </li>
+    </ul>
+
+    <!-- محتوى التبويبات -->
+    <div class="tab-content" id="autoNewsTabContent">
+        <!-- تبويب الأخبار المجلوبة -->
+        <div class="tab-pane fade show active" id="news" role="tabpanel" aria-labelledby="news-tab">
+            <!-- إحصائيات الجلب -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>إحصائيات جلب الأخبار
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card bg-light mb-3">
+                                <div class="card-body">
+                                    <h6 class="card-title"><i class="fas fa-clock me-2"></i>آخر عملية جلب</h6>
+                                    <p class="card-text">
+                                        <strong>التاريخ والوقت:</strong> {{ fetch_stats.last_fetch_time or 'لم يتم الجلب بعد' }}<br>
+                                        <strong>عدد الأخبار المجلوبة:</strong> {{ fetch_stats.total_fetched or '0' }}<br>
+                                        <strong>الوقت المستغرق:</strong> {{ fetch_stats.fetch_time or '0 ثانية' }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-light mb-3">
+                                <div class="card-body">
+                                    <h6 class="card-title"><i class="fas fa-newspaper me-2"></i>الأخبار الحالية</h6>
+                                    <p class="card-text">
+                                        <strong>إجمالي الأخبار المجلوبة:</strong> {{ auto_news|length }}<br>
+                                        <strong>عدد المصادر:</strong> {{ current_sources_stats|length }}<br>
+                                        <strong>أكثر المصادر:</strong>
+                                        {% if current_sources_stats %}
+                                            {{ current_sources_stats[0][0] }} ({{ current_sources_stats[0][1] }} خبر)
+                                        {% else %}
+                                            لا يوجد
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- أدوات الفلترة -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="fas fa-filter me-2"></i>تصفية الأخبار
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('auto_news') }}" method="get">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="source" class="form-label">المصدر</label>
+                                    <select class="form-select" id="source" name="source">
+                                        <option value="">جميع المصادر</option>
+                                        {% for source_name, count in current_sources_stats %}
+                                        <option value="{{ source_name }}" {% if source_filter == source_name %}selected{% endif %}>
+                                            {{ source_name }} ({{ count }} خبر)
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="date-filter" class="form-label">التاريخ</label>
+                                    <input type="date" class="form-control" id="date-filter" name="date">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="keyword-filter" class="form-label">كلمة مفتاحية</label>
+                                    <input type="text" class="form-control" id="keyword-filter" name="keyword" placeholder="ابحث...">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-end">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="fas fa-search me-1"></i>تطبيق
+                            </button>
+                            <a href="{{ url_for('auto_news') }}" class="btn btn-secondary">
+                                <i class="fas fa-redo me-1"></i>إعادة ضبط
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- جدول الأخبار -->
+            <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th scope="col" width="60%">عنوان الخبر</th>
+                            <th scope="col" width="15%">المصدر</th>
+                            <th scope="col" width="15%">التاريخ</th>
+                            <th scope="col" width="10%">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for news in auto_news %}
+                        <tr>
+                            <td>
+                                <a href="{{ news.source_url }}" target="_blank" class="text-decoration-none news-title" title="فتح المصدر الأصلي للخبر">{{ news.title }}</a>
+                            </td>
+                            <td>
+                                <span class="source-badge">{{ news.source }}</span>
+                            </td>
+                            <td>
+                                <span class="news-date">{{ news.date|format_date_arabic }}</span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('view_news_details', news_id=news.id) }}" class="btn btn-sm btn-outline-primary" title="عرض تفاصيل الخبر">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-outline-success save-news" data-bs-toggle="modal" data-bs-target="#saveNewsModal{{ news.id }}" title="حفظ الخبر في قاعدة البيانات">
+                                        <i class="fas fa-save"></i>
+                                    </button>
+                                </div>
+
+                                <!-- نموذج حفظ الخبر -->
+                                <div class="modal fade" id="saveNewsModal{{ news.id }}" tabindex="-1" aria-labelledby="saveNewsModalLabel{{ news.id }}" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="saveNewsModalLabel{{ news.id }}">حفظ الخبر</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                                            </div>
+                                            <form action="{{ url_for('save_scraped_news', news_id=news.id) }}" method="post">
+                                                <div class="modal-body">
+                                                    <h6 class="news-title mb-3">{{ news.title }}</h6>
+
+                                                    <div class="mb-3">
+                                                        <label for="category_id{{ news.id }}" class="form-label">التصنيف</label>
+                                                        <select class="form-select" id="category_id{{ news.id }}" name="category_id" required>
+                                                            <option value="">اختر التصنيف</option>
+                                                            {% for category in categories %}
+                                                            <option value="{{ category.id }}">{{ category.name }}</option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </div>
+
+                                                    <div class="mb-3">
+                                                        <label for="governorate_id{{ news.id }}" class="form-label">المحافظة</label>
+                                                        <select class="form-select" id="governorate_id{{ news.id }}" name="governorate_id" required>
+                                                            <option value="">اختر المحافظة</option>
+                                                            {% for governorate in governorates %}
+                                                            <option value="{{ governorate.id }}">{{ governorate.name }}</option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                                                    <button type="submit" class="btn btn-primary">حفظ الخبر</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if not auto_news %}
+            <div class="alert alert-info text-center">
+                لا توجد أخبار تم جلبها تلقائياً حالياً
+            </div>
+            {% endif %}
+
+            <!-- إحصائيات المصادر -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>إحصائيات المصادر
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>المصدر</th>
+                                    <th>عدد الأخبار</th>
+                                    <th>النسبة المئوية</th>
+                                    <th>الحالة</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% set total_news = auto_news|length %}
+                                {% for source_name, count in current_sources_stats %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ url_for('auto_news', source=source_name) }}" class="text-decoration-none">
+                                            {{ source_name }}
+                                        </a>
+                                    </td>
+                                    <td>{{ count }}</td>
+                                    <td>
+                                        {% if total_news > 0 %}
+                                            {{ ((count / total_news) * 100)|round(1) }}%
+                                        {% else %}
+                                            0%
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar bg-success" role="progressbar"
+                                                style="width: {{ ((count / total_news) * 100) if total_news > 0 else 0 }}%;"
+                                                aria-valuenow="{{ count }}"
+                                                aria-valuemin="0"
+                                                aria-valuemax="{{ total_news }}">
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                {% if not current_sources_stats %}
+                                <tr>
+                                    <td colspan="4" class="text-center">لا توجد إحصائيات للمصادر</td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between mt-4 mb-5">
+                <div class="d-flex gap-2">
+                    <form action="{{ url_for('fetch_news_now') }}" method="post">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-sync me-1"></i>جلب الأخبار الآن
+                        </button>
+                    </form>
+                    <form action="{{ url_for('clean_auto_news') }}" method="post" onsubmit="return confirm('هل أنت متأكد من رغبتك في تنظيف جميع الأخبار التي لم يتم حفظها؟');">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash-alt me-1"></i>تنظيف الأخبار
+                        </button>
+                    </form>
+                </div>
+                <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-home me-1"></i>العودة للرئيسية
+                </a>
+            </div>
+        </div>
+
+        <!-- تبويب إعدادات الجلب -->
+        <div class="tab-pane fade" id="settings" role="tabpanel" aria-labelledby="settings-tab">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-cogs me-2"></i>إعدادات الجلب الآلي
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="fetch-settings-form">
+                        <div class="mb-3">
+                            <label for="fetch-interval" class="form-label">الحد الأقصى لعدد الأخبار لكل مصدر</label>
+                            <input type="number" class="form-control" id="max-news" min="1" max="50" value="30">
+                            <div class="form-text">عدد الأخبار التي سيتم جلبها من كل مصدر في كل عملية جلب</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="filter-iraq" checked>
+                                <label class="form-check-label" for="filter-iraq">
+                                    جلب الأخبار المتعلقة بالعراق فقط
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="filter-today" checked>
+                                <label class="form-check-label" for="filter-today">
+                                    جلب أخبار اليوم فقط
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="button" id="save-settings" class="btn btn-success">
+                                <i class="fas fa-save me-1"></i>حفظ الإعدادات
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- تبويب المصادر النشطة -->
+        <div class="tab-pane fade" id="sources" role="tabpanel" aria-labelledby="sources-tab">
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-rss me-2"></i>إدارة مصادر الأخبار
+                    </h5>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-success" id="check-sources-btn">
+                            <i class="fas fa-check-circle me-1"></i> التحقق من جاهزية المصادر
+                        </button>
+                        <button class="btn btn-danger" id="delete-inactive-sources-btn">
+                            <i class="fas fa-trash-alt me-1"></i> حذف المصادر غير الفعالة
+                        </button>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSourceModal">
+                            <i class="fas fa-plus-circle me-1"></i> إضافة مصدر جديد
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-lightbulb me-2"></i> نصائح:
+                        <ul class="mb-0 mt-2">
+                            <li>أضف المصادر الإخبارية العراقية الرسمية والموثوقة.</li>
+                            <li>تأكد من إضافة الرابط الصحيح للمصدر.</li>
+                            <li>يمكنك تفعيل أو تعطيل المصادر حسب الحاجة.</li>
+                        </ul>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped">
+                            <thead class="table-light">
+                                <tr>
+                                    <th scope="col">#</th>
+                                    <th scope="col">اسم المصدر</th>
+                                    <th scope="col">الرابط</th>
+                                    <th scope="col">النوع</th>
+                                    <th scope="col">الحالة</th>
+                                    <th scope="col">إمكانية جلب الأخبار</th>
+                                    <th scope="col">عدد الروابط</th>
+                                    <th scope="col">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for source in sources %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td>{{ source.name }}</td>
+                                    <td><a href="{{ source.url }}" target="_blank" class="text-truncate d-inline-block" style="max-width: 200px;">{{ source.url }}</a></td>
+                                    <td>
+                                        {% if source.source_type == 'website' %}
+                                        <span class="badge bg-primary">موقع ويب</span>
+                                        {% elif source.source_type == 'rss' %}
+                                        <span class="badge bg-info">RSS</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">غير محدد</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if source.is_active %}
+                                        <span class="badge bg-success">نشط</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">غير نشط</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if source.can_fetch_news %}
+                                        <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i> متاحة</span>
+                                        {% else %}
+                                        <span class="badge bg-warning"><i class="fas fa-exclamation-circle me-1"></i> غير متاحة</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ source.news_count or 0 }}</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-sm btn-outline-primary edit-source-btn"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#editSourceModal"
+                                                data-id="{{ source.id }}"
+                                                data-name="{{ source.name }}"
+                                                data-url="{{ source.url }}"
+                                                data-type="{{ source.source_type }}"
+                                                data-active="{{ source.is_active }}">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger delete-source-btn"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#deleteSourceModal"
+                                                data-id="{{ source.id }}"
+                                                data-name="{{ source.name }}">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- نموذج إضافة مصدر جديد -->
+        <div class="modal fade" id="addSourceModal" tabindex="-1" aria-labelledby="addSourceModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addSourceModalLabel">إضافة مصدر جديد</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                    </div>
+                    <form action="{{ url_for('add_source') }}" method="post">
+                        <div class="modal-body">
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <label for="name" class="form-label">اسم المصدر <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="name" name="name" required>
+                                    <small class="form-text text-muted">أدخل اسم الموقع الإخباري</small>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <label for="url" class="form-label">رابط المصدر <span class="text-danger">*</span></label>
+                                    <input type="url" class="form-control" id="url" name="url" required>
+                                    <small class="form-text text-muted">أدخل رابط الصفحة الرئيسية للموقع الإخباري</small>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="source_type" class="form-label">نوع المصدر</label>
+                                    <select class="form-select" id="source_type" name="source_type">
+                                        <option value="website">موقع ويب</option>
+                                        <option value="rss">RSS</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="is_active" class="form-label">الحالة</label>
+                                    <div class="form-check form-switch mt-2">
+                                        <input class="form-check-input" type="checkbox" id="is_active" name="is_active" checked>
+                                        <label class="form-check-label" for="is_active">نشط</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                            <button type="submit" class="btn btn-primary">إضافة</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- نموذج تعديل مصدر -->
+        <div class="modal fade" id="editSourceModal" tabindex="-1" aria-labelledby="editSourceModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editSourceModalLabel">تعديل مصدر</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                    </div>
+                    <form id="editSourceForm" action="" method="post">
+                        <div class="modal-body">
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <label for="edit_name" class="form-label">اسم المصدر <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="edit_name" name="name" required>
+                                    <small class="form-text text-muted">أدخل اسم الموقع الإخباري</small>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <label for="edit_url" class="form-label">رابط المصدر <span class="text-danger">*</span></label>
+                                    <input type="url" class="form-control" id="edit_url" name="url" required>
+                                    <small class="form-text text-muted">أدخل رابط الصفحة الرئيسية للموقع الإخباري</small>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="edit_source_type" class="form-label">نوع المصدر</label>
+                                    <select class="form-select" id="edit_source_type" name="source_type">
+                                        <option value="website">موقع ويب</option>
+                                        <option value="rss">RSS</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="edit_is_active" class="form-label">الحالة</label>
+                                    <div class="form-check form-switch mt-2">
+                                        <input class="form-check-input" type="checkbox" id="edit_is_active" name="is_active">
+                                        <label class="form-check-label" for="edit_is_active">نشط</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                            <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- نموذج حذف مصدر -->
+        <div class="modal fade" id="deleteSourceModal" tabindex="-1" aria-labelledby="deleteSourceModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="deleteSourceModalLabel">حذف مصدر</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>هل أنت متأكد من رغبتك في حذف المصدر <strong id="sourceNameToDelete"></strong>؟</p>
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i> تحذير: لا يمكن التراجع عن هذا الإجراء.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                        <form id="deleteSourceForm" action="" method="post">
+                            <button type="submit" class="btn btn-danger">حذف</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- نموذج نتائج التحقق من المصادر -->
+        <div class="modal fade" id="checkSourcesResultModal" tabindex="-1" aria-labelledby="checkSourcesResultModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="checkSourcesResultModalLabel">نتائج التحقق من جاهزية المصادر</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-info mb-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            تم التحقق من جاهزية المصادر لجلب الأخبار. فيما يلي نتائج التحقق:
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="sources-check-results">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>المصدر</th>
+                                        <th>الحالة</th>
+                                        <th>إمكانية جلب الأخبار</th>
+                                        <th>عدد الروابط</th>
+                                        <th>الوقت المستغرق</th>
+                                        <th>ملاحظات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- سيتم ملء هذا الجدول بواسطة JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="mt-3">
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="me-2">إجمالي المصادر:</div>
+                                <div class="fw-bold" id="total-sources-count">0</div>
+                            </div>
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="me-2">المصادر الجاهزة:</div>
+                                <div class="fw-bold text-success" id="ready-sources-count">0</div>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <div class="me-2">المصادر غير الجاهزة:</div>
+                                <div class="fw-bold text-danger" id="not-ready-sources-count">0</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                        <button type="button" class="btn btn-success" id="update-sources-status-btn">
+                            <i class="fas fa-sync me-1"></i> تحديث حالة المصادر
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- نموذج تأكيد حذف المصادر غير الفعالة -->
+        <div class="modal fade" id="deleteInactiveSourcesModal" tabindex="-1" aria-labelledby="deleteInactiveSourcesModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="deleteInactiveSourcesModalLabel">حذف المصادر غير الفعالة</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>هل أنت متأكد من رغبتك في حذف جميع المصادر غير الفعالة؟</p>
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i> تحذير: لا يمكن التراجع عن هذا الإجراء.
+                        </div>
+                        <div id="inactive-sources-list" class="mt-3">
+                            <p>المصادر التي سيتم حذفها:</p>
+                            <ul id="inactive-sources-names">
+                                <!-- سيتم ملء هذه القائمة بواسطة JavaScript -->
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                        <form action="{{ url_for('delete_inactive_sources') }}" method="post">
+                            <button type="submit" class="btn btn-danger">حذف المصادر غير الفعالة</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // عرض مؤشر التحميل أثناء جلب الأخبار
+        $('form[action="{{ url_for("fetch_news_now") }}"]').submit(function() {
+            var $button = $(this).find('button[type="submit"]');
+            var originalText = $button.html();
+
+            $button.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري جلب الأخبار...');
+            $button.prop('disabled', true);
+
+            // إضافة مؤشر تحميل في أعلى الصفحة
+            var $loadingAlert = $('<div class="alert alert-info text-center" id="fetch-loading-alert">' +
+                '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>' +
+                'جاري جلب الأخبار من المصادر... قد تستغرق هذه العملية بضع دقائق، يرجى الانتظار.' +
+                '</div>');
+
+            $('.auto-news-header').after($loadingAlert);
+
+            return true;
+        });
+
+        // حفظ الإعدادات
+        $('#save-settings').click(function() {
+            alert('تم حفظ الإعدادات بنجاح');
+        });
+
+        // تهيئة نافذة تعديل المصدر
+        $('.edit-source-btn').click(function() {
+            var id = $(this).data('id');
+            var name = $(this).data('name');
+            var url = $(this).data('url');
+            var type = $(this).data('type');
+            var active = $(this).data('active');
+
+            $('#edit_name').val(name);
+            $('#edit_url').val(url);
+            $('#edit_source_type').val(type);
+            $('#edit_is_active').prop('checked', active === 'True' || active === true);
+
+            $('#editSourceForm').attr('action', '/sources/edit/' + id);
+        });
+
+        // تهيئة نافذة حذف المصدر
+        $('.delete-source-btn').click(function() {
+            var id = $(this).data('id');
+            var name = $(this).data('name');
+
+            $('#sourceNameToDelete').text(name);
+            $('#deleteSourceForm').attr('action', '/sources/delete/' + id);
+        });
+
+        // التبديل إلى تبويب المصادر إذا كان هناك هاش في الرابط
+        if (window.location.hash === '#sources') {
+            $('#sources-tab').tab('show');
+        } else if (window.location.hash === '#settings') {
+            $('#settings-tab').tab('show');
+        }
+
+        // تحديث الهاش عند تغيير التبويب
+        $('a[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+            if (e.target.id === 'sources-tab') {
+                window.location.hash = 'sources';
+            } else if (e.target.id === 'settings-tab') {
+                window.location.hash = 'settings';
+            } else {
+                window.location.hash = '';
+            }
+        });
+
+        // التحقق من جاهزية المصادر
+        $('#check-sources-btn').click(function() {
+            // عرض مؤشر التحميل
+            $(this).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري التحقق...');
+            $(this).prop('disabled', true);
+
+            // إرسال طلب AJAX للتحقق من جاهزية المصادر
+            $.ajax({
+                url: '/check-sources',
+                type: 'POST',
+                dataType: 'json',
+                success: function(response) {
+                    // إعادة تعيين زر التحقق
+                    $('#check-sources-btn').html('<i class="fas fa-check-circle me-1"></i> التحقق من جاهزية المصادر');
+                    $('#check-sources-btn').prop('disabled', false);
+
+                    // التحقق من وجود خطأ في الاستجابة
+                    if (response.error) {
+                        console.error('خطأ في الاستجابة:', response.error);
+                        console.error('تتبع الخطأ:', response.traceback);
+                        alert('حدث خطأ أثناء التحقق من جاهزية المصادر: ' + response.error);
+                        return;
+                    }
+
+                    // تحديث جدول النتائج
+                    updateSourcesCheckResults(response);
+
+                    // عرض نموذج النتائج
+                    $('#checkSourcesResultModal').modal('show');
+                },
+                error: function(xhr, status, error) {
+                    // إعادة تعيين زر التحقق
+                    $('#check-sources-btn').html('<i class="fas fa-check-circle me-1"></i> التحقق من جاهزية المصادر');
+                    $('#check-sources-btn').prop('disabled', false);
+
+                    console.error('خطأ في طلب AJAX:', error);
+                    console.error('حالة الخطأ:', status);
+                    console.error('استجابة الخادم:', xhr.responseText);
+
+                    try {
+                        var response = JSON.parse(xhr.responseText);
+                        if (response.error) {
+                            alert('حدث خطأ أثناء التحقق من جاهزية المصادر: ' + response.error);
+                            return;
+                        }
+                    } catch (e) {
+                        console.error('خطأ في تحليل استجابة الخادم:', e);
+                    }
+
+                    // عرض رسالة خطأ
+                    alert('حدث خطأ أثناء التحقق من جاهزية المصادر: ' + error);
+                }
+            });
+        });
+
+        // تحديث حالة المصادر
+        $('#update-sources-status-btn').click(function() {
+            // عرض مؤشر التحميل
+            $(this).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري التحديث...');
+            $(this).prop('disabled', true);
+
+            // إرسال طلب AJAX لتحديث حالة المصادر
+            $.ajax({
+                url: '/update-sources-status',
+                type: 'POST',
+                dataType: 'json',
+                success: function(response) {
+                    // إعادة تعيين زر التحديث
+                    $('#update-sources-status-btn').html('<i class="fas fa-sync me-1"></i> تحديث حالة المصادر');
+                    $('#update-sources-status-btn').prop('disabled', false);
+
+                    // إغلاق النموذج
+                    $('#checkSourcesResultModal').modal('hide');
+
+                    // إعادة تحميل الصفحة
+                    location.reload();
+                },
+                error: function(xhr, status, error) {
+                    // إعادة تعيين زر التحديث
+                    $('#update-sources-status-btn').html('<i class="fas fa-sync me-1"></i> تحديث حالة المصادر');
+                    $('#update-sources-status-btn').prop('disabled', false);
+
+                    // عرض رسالة خطأ
+                    alert('حدث خطأ أثناء تحديث حالة المصادر: ' + error);
+                }
+            });
+        });
+
+        // حذف المصادر غير الفعالة
+        $('#delete-inactive-sources-btn').click(function() {
+            // إرسال طلب AJAX للحصول على قائمة المصادر غير الفعالة
+            $.ajax({
+                url: '/get-inactive-sources',
+                type: 'GET',
+                dataType: 'json',
+                success: function(response) {
+                    // التحقق من وجود مصادر غير فعالة
+                    if (response.inactive_sources.length === 0) {
+                        alert('لا توجد مصادر غير فعالة للحذف.');
+                        return;
+                    }
+
+                    // تحديث قائمة المصادر غير الفعالة
+                    var $list = $('#inactive-sources-names');
+                    $list.empty();
+
+                    response.inactive_sources.forEach(function(source) {
+                        $list.append('<li>' + source.name + '</li>');
+                    });
+
+                    // عرض نموذج تأكيد الحذف
+                    $('#deleteInactiveSourcesModal').modal('show');
+                },
+                error: function(xhr, status, error) {
+                    // عرض رسالة خطأ
+                    alert('حدث خطأ أثناء الحصول على قائمة المصادر غير الفعالة: ' + error);
+                }
+            });
+        });
+
+        // دالة لتحديث جدول نتائج التحقق من المصادر
+        function updateSourcesCheckResults(data) {
+            try {
+                var $tbody = $('#sources-check-results tbody');
+                $tbody.empty();
+
+                // التحقق من وجود نتائج
+                if (!data.results || !Array.isArray(data.results) || data.results.length === 0) {
+                    $tbody.append('<tr><td colspan="6" class="text-center">لا توجد نتائج للعرض</td></tr>');
+
+                    // تحديث إحصائيات المصادر
+                    $('#total-sources-count').text('0');
+                    $('#ready-sources-count').text('0');
+                    $('#not-ready-sources-count').text('0');
+
+                    return;
+                }
+
+                var readyCount = 0;
+                var notReadyCount = 0;
+                var canFetchCount = 0;
+
+                data.results.forEach(function(result) {
+                    // حالة الاتصال
+                    var statusClass = result.is_ready ? 'success' : 'danger';
+                    var statusText = result.is_ready ? 'جاهز' : 'غير جاهز';
+                    var statusIcon = result.is_ready ? 'check-circle' : 'times-circle';
+
+                    // حالة إمكانية جلب الأخبار
+                    var fetchClass = result.can_fetch_news ? 'success' : 'warning';
+                    var fetchText = result.can_fetch_news ? 'متاحة' : 'غير متاحة';
+                    var fetchIcon = result.can_fetch_news ? 'check-circle' : 'exclamation-circle';
+
+                    // تحديث العدادات
+                    if (result.is_ready) {
+                        readyCount++;
+                    } else {
+                        notReadyCount++;
+                    }
+
+                    if (result.can_fetch_news) {
+                        canFetchCount++;
+                    }
+
+                    // التعامل مع القيم الفارغة
+                    var name = result.name || 'غير معروف';
+                    var time_ms = (result.time_ms !== undefined) ? result.time_ms + ' مللي ثانية' : '-';
+                    var notes = result.notes || '-';
+                    var news_count = (result.news_count !== undefined) ? result.news_count : '0';
+
+                    var row = '<tr>' +
+                        '<td>' + name + '</td>' +
+                        '<td><span class="badge bg-' + statusClass + '"><i class="fas fa-' + statusIcon + ' me-1"></i>' + statusText + '</span></td>' +
+                        '<td><span class="badge bg-' + fetchClass + '"><i class="fas fa-' + fetchIcon + ' me-1"></i>' + fetchText + '</span></td>' +
+                        '<td>' + news_count + '</td>' +
+                        '<td>' + time_ms + '</td>' +
+                        '<td>' + notes + '</td>' +
+                        '</tr>';
+
+                    $tbody.append(row);
+                });
+
+                // تحديث إحصائيات المصادر
+                $('#total-sources-count').text(data.results.length);
+                $('#ready-sources-count').text(readyCount);
+                $('#not-ready-sources-count').text(notReadyCount);
+
+                // إضافة معلومات عن المصادر التي يمكن جلب الأخبار منها
+                var $statsContainer = $('#total-sources-count').parent().parent();
+
+                // التحقق من وجود عنصر إحصائيات المصادر التي يمكن جلب الأخبار منها
+                if ($('#can-fetch-sources-count').length === 0) {
+                    $statsContainer.append(
+                        '<div class="d-flex align-items-center mb-2">' +
+                        '<div class="me-2">المصادر التي يمكن جلب الأخبار منها:</div>' +
+                        '<div class="fw-bold text-success" id="can-fetch-sources-count">' + canFetchCount + '</div>' +
+                        '</div>'
+                    );
+                } else {
+                    $('#can-fetch-sources-count').text(canFetchCount);
+                }
+            } catch (e) {
+                console.error('خطأ في تحديث جدول نتائج التحقق من المصادر:', e);
+
+                var $tbody = $('#sources-check-results tbody');
+                $tbody.empty();
+                $tbody.append('<tr><td colspan="6" class="text-center text-danger">حدث خطأ أثناء عرض النتائج: ' + e.message + '</td></tr>');
+
+                // تحديث إحصائيات المصادر
+                $('#total-sources-count').text('0');
+                $('#ready-sources-count').text('0');
+                $('#not-ready-sources-count').text('0');
+                if ($('#can-fetch-sources-count').length > 0) {
+                    $('#can-fetch-sources-count').text('0');
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

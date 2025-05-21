@@ -1,0 +1,247 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- شريط التنقل -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('index') }}">الرئيسية</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('manage_sources') }}">إدارة مصادر الأخبار</a></li>
+            <li class="breadcrumb-item active" aria-current="page">الأخبار المستخرجة</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0"><i class="fas fa-newspaper me-2"></i>الأخبار المستخرجة</h2>
+        <div>
+            <a href="{{ url_for('manage_sources') }}" class="btn btn-secondary me-2">
+                <i class="fas fa-arrow-left me-1"></i> العودة
+            </a>
+            {% if source %}
+                <a href="{{ url_for('fetch_news_from_source', source_id=source.id) }}" class="btn btn-success">
+                    <i class="fas fa-sync-alt me-1"></i> تحديث
+                </a>
+            {% else %}
+                <a href="{{ url_for('fetch_news') }}" class="btn btn-success">
+                    <i class="fas fa-sync-alt me-1"></i> تحديث
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- معلومات الجلب -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>معلومات الجلب</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <strong>المصدر:</strong>
+                        {% if source %}
+                            {{ source.name }}
+                        {% else %}
+                            جميع المصادر
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <strong>تاريخ الجلب:</strong>
+                        {{ fetch_date|format_date_arabic }}
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <strong>عدد الأخبار:</strong>
+                        {{ news_list|length }}
+                    </div>
+                </div>
+            </div>
+            <div class="alert alert-info mb-0">
+                <i class="fas fa-filter me-2"></i> تم فلترة الأخبار لتشمل فقط الأخبار المتعلقة بالعراق والمنشورة في آخر 3 أيام.
+                {% if use_headless == 'true' %}
+                <br><i class="fas fa-robot me-2"></i> تم استخدام المتصفح بدون واجهة (Headless Browser) لاستخراج الأخبار.
+                {% elif use_headless == 'auto' %}
+                <br><i class="fas fa-magic me-2"></i> تم استخدام الطريقة المناسبة تلقائيًا لكل مصدر (متصفح بدون واجهة أو زاحف عادي).
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- قائمة الأخبار المستخرجة -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-light">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">قائمة الأخبار المستخرجة</h5>
+                {% if news_list %}
+                    <button id="selectAllBtn" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-check-square me-1"></i> تحديد الكل
+                    </button>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card-body">
+            {% if news_list %}
+                <form action="{{ url_for('save_scraped_news') }}" method="POST">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th width="5%">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="selectAll">
+                                        </div>
+                                    </th>
+                                    <th width="30%">العنوان</th>
+                                    <th width="40%">المحتوى</th>
+                                    <th width="10%">المصدر</th>
+                                    <th width="10%">التاريخ</th>
+                                    <th width="5%">معاينة</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for news in news_list %}
+                                    <tr>
+                                        <td>
+                                            <div class="form-check">
+                                                <input class="form-check-input news-checkbox" type="checkbox" name="selected_news[]" value="{{ loop.index0 }}">
+                                                <input type="hidden" name="title_{{ loop.index0 }}" value="{{ news.title }}">
+                                                <input type="hidden" name="content_{{ loop.index0 }}" value="{{ news.content }}">
+                                                <input type="hidden" name="source_{{ loop.index0 }}" value="{{ news.source }}">
+                                                <input type="hidden" name="source_url_{{ loop.index0 }}" value="{{ news.source_url }}">
+                                                <input type="hidden" name="date_{{ loop.index0 }}" value="{{ news.date }}">
+                                                <input type="hidden" name="content_hash_{{ loop.index0 }}" value="{{ news.content_hash|default('') }}">
+                                            </div>
+                                        </td>
+                                        <td>{{ news.title|truncate(100) }}</td>
+                                        <td>{{ news.content|striptags|truncate(150) }}</td>
+                                        <td>{{ news.source }}</td>
+                                        <td>{{ news.date|format_date_arabic }}</td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-info preview-btn"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#previewModal"
+                                                    data-title="{{ news.title }}"
+                                                    data-content="{{ news.content }}"
+                                                    data-source="{{ news.source }}"
+                                                    data-source-url="{{ news.source_url }}"
+                                                    data-date="{{ news.date|format_date_arabic }}">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mt-4">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="category_id" class="form-label">التصنيف</label>
+                                    <select class="form-select" id="category_id" name="category_id" required>
+                                        <option value="">اختر التصنيف</option>
+                                        {% for category in categories %}
+                                            <option value="{{ category.id }}">{{ category.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="governorate_id" class="form-label">المحافظة</label>
+                                    <select class="form-select" id="governorate_id" name="governorate_id" required>
+                                        <option value="">اختر المحافظة</option>
+                                        {% for governorate in governorates %}
+                                            <option value="{{ governorate.id }}">{{ governorate.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i> حفظ الأخبار المحددة
+                        </button>
+                    </div>
+                </form>
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> لم يتم العثور على أخبار جديدة.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- نافذة معاينة الخبر -->
+<div class="modal fade" id="previewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">معاينة الخبر</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <h4 id="previewTitle" class="mb-3"></h4>
+                <div class="mb-3">
+                    <span class="badge bg-primary me-2">المصدر: <span id="previewSource"></span></span>
+                    <span class="badge bg-secondary">التاريخ: <span id="previewDate"></span></span>
+                </div>
+                <div class="mb-3">
+                    <a id="previewSourceUrl" href="#" target="_blank" class="text-decoration-none">
+                        <i class="fas fa-external-link-alt me-1"></i> فتح المصدر الأصلي
+                    </a>
+                </div>
+                <hr>
+                <div id="previewContent" class="mt-3"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // تحديد/إلغاء تحديد كل الأخبار
+        $('#selectAll').change(function() {
+            $('.news-checkbox').prop('checked', $(this).prop('checked'));
+        });
+
+        // تحديث حالة "تحديد الكل" عند تغيير أي خانة
+        $('.news-checkbox').change(function() {
+            var allChecked = $('.news-checkbox:checked').length === $('.news-checkbox').length;
+            $('#selectAll').prop('checked', allChecked);
+        });
+
+        // زر تحديد الكل
+        $('#selectAllBtn').click(function() {
+            var allChecked = $('#selectAll').prop('checked');
+            $('#selectAll').prop('checked', !allChecked);
+            $('.news-checkbox').prop('checked', !allChecked);
+        });
+
+        // معاينة الخبر
+        $('.preview-btn').click(function() {
+            var title = $(this).data('title');
+            var content = $(this).data('content');
+            var source = $(this).data('source');
+            var sourceUrl = $(this).data('source-url');
+            var date = $(this).data('date');
+
+            $('#previewTitle').text(title);
+            $('#previewContent').html(content);
+            $('#previewSource').text(source);
+            $('#previewDate').text(date);
+            $('#previewSourceUrl').attr('href', sourceUrl);
+        });
+    });
+</script>
+{% endblock %}
+
+{% endblock %}

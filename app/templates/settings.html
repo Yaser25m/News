@@ -1,0 +1,219 @@
+{% extends "layout.html" %}
+
+{% block styles %}
+<style>
+    .settings-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        margin-bottom: 20px;
+    }
+    
+    .settings-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+    }
+    
+    .settings-icon {
+        font-size: 2.5rem;
+        color: #0d6efd;
+        margin-bottom: 15px;
+    }
+    
+    .backup-restore-card {
+        border-right: 4px solid #0d6efd;
+    }
+    
+    .backup-history-table th, .backup-history-table td {
+        vertical-align: middle;
+    }
+    
+    .backup-file-size {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+    
+    .backup-date {
+        font-weight: 600;
+    }
+    
+    .section-title {
+        border-right: 4px solid #0d6efd;
+        padding-right: 10px;
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="section-title">
+            <i class="fas fa-cogs me-2"></i> إعدادات النظام
+        </h2>
+        <p class="text-muted">إدارة إعدادات النظام والنسخ الاحتياطية واستعادة البيانات</p>
+    </div>
+</div>
+
+<div class="row">
+    <!-- قسم النسخ الاحتياطي واستعادة البيانات -->
+    <div class="col-md-6">
+        <div class="card shadow-sm settings-card backup-restore-card">
+            <div class="card-body text-center">
+                <div class="settings-icon">
+                    <i class="fas fa-database"></i>
+                </div>
+                <h4 class="card-title">النسخ الاحتياطي واستعادة البيانات</h4>
+                <p class="card-text">إنشاء نسخة احتياطية من قاعدة البيانات أو استعادة نسخة سابقة</p>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#backupModal">
+                        <i class="fas fa-download me-2"></i> إنشاء نسخة احتياطية
+                    </button>
+                    <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#restoreModal">
+                        <i class="fas fa-upload me-2"></i> استعادة نسخة احتياطية
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- قسم إعدادات النظام (يمكن إضافة المزيد من الإعدادات لاحقاً) -->
+    <div class="col-md-6">
+        <div class="card shadow-sm settings-card">
+            <div class="card-body text-center">
+                <div class="settings-icon">
+                    <i class="fas fa-sliders-h"></i>
+                </div>
+                <h4 class="card-title">إعدادات عامة</h4>
+                <p class="card-text">تخصيص إعدادات النظام العامة وخيارات العرض</p>
+                <div class="d-grid">
+                    <button class="btn btn-secondary" disabled>
+                        <i class="fas fa-cog me-2"></i> قريباً
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- قسم سجل النسخ الاحتياطية -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">
+                    <i class="fas fa-history me-2"></i> سجل النسخ الاحتياطية
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if backups %}
+                <div class="table-responsive">
+                    <table class="table table-hover backup-history-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col" width="5%">#</th>
+                                <th scope="col" width="25%">اسم الملف</th>
+                                <th scope="col" width="20%">تاريخ النسخ</th>
+                                <th scope="col" width="15%">حجم الملف</th>
+                                <th scope="col" width="35%">الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for backup in backups %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ backup.filename }}</td>
+                                <td class="backup-date">{{ backup.date|format_date_arabic }}</td>
+                                <td class="backup-file-size">{{ backup.size }}</td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{{ url_for('download_backup', filename=backup.filename) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-download"></i> تنزيل
+                                        </a>
+                                        <a href="{{ url_for('restore_backup', filename=backup.filename) }}" class="btn btn-sm btn-outline-warning" onclick="return confirm('هل أنت متأكد من استعادة هذه النسخة؟ سيتم استبدال البيانات الحالية.')">
+                                            <i class="fas fa-undo"></i> استعادة
+                                        </a>
+                                        <a href="{{ url_for('delete_backup', filename=backup.filename) }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('هل أنت متأكد من حذف هذه النسخة الاحتياطية؟')">
+                                            <i class="fas fa-trash"></i> حذف
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> لا توجد نسخ احتياطية متاحة حالياً.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- نافذة إنشاء نسخة احتياطية -->
+<div class="modal fade" id="backupModal" tabindex="-1" aria-labelledby="backupModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="backupModalLabel">إنشاء نسخة احتياطية</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <form action="{{ url_for('create_backup') }}" method="post">
+                <div class="modal-body">
+                    <p>سيتم إنشاء نسخة احتياطية من قاعدة البيانات الحالية. هل تريد المتابعة؟</p>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="includeAutoNews" name="include_auto_news">
+                        <label class="form-check-label" for="includeAutoNews">
+                            تضمين أخبار الجلب التلقائي (غير المحفوظة)
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-download me-1"></i> إنشاء نسخة احتياطية
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- نافذة استعادة نسخة احتياطية -->
+<div class="modal fade" id="restoreModal" tabindex="-1" aria-labelledby="restoreModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="restoreModalLabel">استعادة نسخة احتياطية</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <form action="{{ url_for('restore_backup_upload') }}" method="post" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i> تحذير: استعادة نسخة احتياطية سيؤدي إلى استبدال جميع البيانات الحالية!
+                    </div>
+                    <div class="mb-3">
+                        <label for="backupFile" class="form-label">اختر ملف النسخة الاحتياطية</label>
+                        <input class="form-control" type="file" id="backupFile" name="backup_file" accept=".sqlite,.db,.backup,.sql">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-upload me-1"></i> استعادة
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // يمكن إضافة سكربتات إضافية هنا
+    });
+</script>
+{% endblock %}
