@@ -6,6 +6,10 @@
   },
   "routes": [
     {
+      "pattern": "/",
+      "script": "workers-site/index.js"
+    },
+    {
       "pattern": "/*",
       "script": "workers-site/index.js"
     }
@@ -13,6 +17,7 @@
   "environment_variables": {
     "FLASK_ENV": "production",
     "FLASK_APP": "app.py",
-    "DATABASE_URL": "sqlite:///relational_app.db"
+    "DATABASE_URL": "sqlite:///relational_app.db",
+    "PORT": "8080"
   }
 }

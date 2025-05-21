@@ -8,3 +8,14 @@ zone_id = ""
 [site]
 bucket = "./dist"
 entry-point = "workers-site"
+
+[build]
+command = "bash build.sh"
+upload.format = "service-worker"
+
+[build.upload]
+format = "service-worker"
+
+# تكوين Pages
+[pages_build_output_dir]
+value = "dist"
